@@ -16,10 +16,9 @@
 #include "debug_tools.h"
 #include "game_cvars.h"
 #include "game_patches.h"
+#include "local_profiles.h"
 #include "mod/third_person.h"
 #include "utils.h"
-#include "local_profiles.h"
-#include <rex/ui/keybinds.h>
 
 #ifdef REXGLUE_ENABLE_PERF_COUNTERS
 #include <rex/perf/counter.h>
@@ -62,10 +61,7 @@ public:
     // Registered before OnPostSetup reloads the settings files, so the key
     // can be rebound from mapping.toml.
     third_person::RegisterBinds();
-    profiles_ = pdz_profiles::MakeProfileDialog(drawer);
-    rex::ui::RegisterBind("bind_pdz_profiles", "F9", "Local player profiles", [] {
-      pdz_profiles::Toggle();
-    });
+    local_profiles::Init(drawer);
   }
 
   void OnPostSetup() override
@@ -89,8 +85,7 @@ public:
 
   void OnShutdown() override
   {
-    rex::ui::UnregisterBind("bind_pdz_profiles");
-    profiles_.reset();
+    local_profiles::Shutdown();
 #ifdef REXGLUE_ENABLE_PERF_COUNTERS
     rex::perf::FlushCsv();
 #endif
@@ -112,7 +107,10 @@ public:
     // Input mapping lives in its own file, loaded manually below (the SDK
     // only auto-loads the single path above).
     utils::LoadSettingsFiles();
-    pdz_profiles::Configure(paths.user_data_root);
+
+    // Each local profile keeps its saves in its own folder. The cache root
+    // was derived before this point, so the shader cache stays shared.
+    paths.user_data_root = local_profiles::Load(paths.user_data_root);
   }
 
   // Override virtual hooks for customization:
@@ -126,6 +124,4 @@ public:
   // std::unique_ptr<rex::ui::ImGuiDialog> CreateAchievementNotificationDialog() override;
   // void OnShutdown() override {}
   // void OnConfigurePaths(rex::PathConfig& paths) override {}
-private:
-  std::unique_ptr<rex::ui::ImGuiDialog> profiles_;
 };

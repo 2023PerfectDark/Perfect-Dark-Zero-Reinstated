@@ -46,7 +46,7 @@ is translated into C++ and compiled. There is no emulator.
    ```
 
    There are also Linux and macOS presets (`linux-amd64-*`, `mac-*`), but only
-   Windows is tested. Codegen (`default.xex` â†’ `generated/`) runs automatically
+   Windows is tested. Codegen (`default.xex` → `generated/`) runs automatically
    as part of the build.
 
 Check that your dump is the expected retail release: XEX CRC `375EC9BB`,
@@ -83,20 +83,17 @@ Only languages your copy of the game includes will work (check
 
 ### Local player profiles
 
-Press **F9** to open the local profile manager. Create a profile, rename it, or
-select the profile to use on the next launch. The game's sign-in prompt also
-opens this dialog. Restart the game after switching profiles or changing a name.
+Press **F9** to open the profile list. You can create profiles, rename them and
+pick the one to play next time. Each profile has its own saves and achievements.
+A new profile or name takes effect after you restart the game.
 
-The original profile keeps the existing save location. Additional profiles use
-`profiles/<numeric-id>/` beneath the configured user-data folder, so renaming a
-profile does not move its saves. The list and next-launch selection are stored
-in `local_profiles.txt` in the original user-data folder. Settings and the shader
-cache remain shared. Names accept 1–15 ASCII letters, digits, spaces, `-`, or `_`;
-leading/trailing spaces and duplicate names are rejected.
+The first profile, "User", keeps the saves you already have. Other profiles
+save to `profiles/<id>/` in the user data folder (`Documents/perfectdarkzerorecomp`
+by default), so renaming a profile doesn't move its saves. The list is kept in
+`local_profiles.toml` in that folder. Settings and the shader cache are shared.
 
-This manages one local player profile per launch, not Xbox Live accounts or
-multiple simultaneous signed-in players. Profile deletion is not provided.
-Rebind `bind_pdz_profiles` in `mapping.toml` to change the shortcut.
+Names are 1–15 characters: letters, digits, spaces, `-` and `_`. To use another
+key, change `bind_local_profiles` in `settings/mapping.toml`.
 
 ## Configuration
 
