@@ -33,6 +33,7 @@ set(PERFECTDARKZERORECOMP_SOURCES
     src/main.cpp
     src/game_patches.cpp
     src/game_cvars.cpp
+    src/local_profiles.cpp
     src/render/gpu_wait_hook.cpp
     src/mod/third_person.cpp
 )
