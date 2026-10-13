@@ -18,6 +18,7 @@
 #include "../game_constants.h"
 #include "../game_cvars.h"
 #include "third_person.h"
+#include "../surface_runtime.h"
 
 REX_EXTERN(__imp__sub_8220D9C8);
 REX_EXTERN(__imp__sub_82637BA0);
@@ -255,7 +256,7 @@ REX_HOOK_RAW(sub_8220D9C8)
 
   bool offset_written = false;
   if (REXCVAR_GET(pdz_tp_enable) && is_player && zoom_mode != kZoomFirstPerson &&
-      !DataThiefNeedsFirstPerson())
+      !DataThiefNeedsFirstPerson() && !pdz_surface::IntroCameraActive() && !pdz_surface::EndingCameraActive())
   {
     offset_written = true;
     double x = REXCVAR_GET(pdz_tp_offset_x);
@@ -391,10 +392,12 @@ REX_HOOK_RAW(sub_826285D0)
 }
 
 // Data Thief (vtable 820CEB48) +4: hacking minigame update.
+#include "../coop_ally.h"
 REX_HOOK_RAW(sub_82637BA0)
 {
   g_data_thief_active_ms.store(SteadyMs(), std::memory_order_relaxed);
-  __imp__sub_82637BA0(ctx, base);
+  if (!pdz_coop::AssistDataThief(ctx,base,ctx.r3.u32,float(ctx.f1.f64)))
+    __imp__sub_82637BA0(ctx, base);
 }
 
 // Binoculars (AudioScope, vtable 820CA998) +4: update.
@@ -409,7 +412,7 @@ namespace third_person
 {
   void RegisterBinds()
   {
-    rex::ui::RegisterBind("bind_third_person", "V", "Toggle third-person camera", []
+    rex::ui::RegisterBind("bind_third_person", "Y", "Toggle third-person camera", []
                           {
       // Held keys auto-repeat; only a press after a quiet gap counts.
       static auto last_event = std::chrono::steady_clock::time_point{};

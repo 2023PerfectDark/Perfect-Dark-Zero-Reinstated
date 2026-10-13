@@ -6,6 +6,16 @@
 # Found via: rexglue codegen (UnresolvedCall errors during Validate phase).
 
 [functions]
+# Virtual method reached during Mission 8 gameplay (crash log 016).
+0x8223D550 = {}
+# Adjacent virtual method reached in Mission 9 (crash log 017).
+0x8223D568 = {}
+# Weapon virtual method reached while switching weapons (observed TU0 crash).
+0x82249078 = {}
+# Native attachment vtable method; needed by cosmetic holstered models.
+0x8250AF18 = {}
+# Native virtual method reached during mission gameplay (observed crash target).
+0x825A8080 = {}
 0x8250B06C = {}
 0x82CAB0D8 = {}
 0x827308D8 = {}
@@ -40,6 +50,7 @@
 # Shared switch-handler blocks reached from sub_82401A40 and sub_82401B08.
 0x82401B58 = { parent = 0x82401A40, end = 0x82401F90 }
 0x82401DA8 = { parent = 0x82401A40, end = 0x82401F90 }
-# found during campaign progress
-0x8223D550 = {}
-0x8223D568 = {}
+
+
+# Multiplayer virtual method observed in the bot-match crash log.
+0x82585398 = {}

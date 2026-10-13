@@ -1,0 +1,14 @@
+Update 2 for the existing modded PDZ installation.
+
+- **Settings stay yours.** Manual and in-game updates preserve controls, graphics settings, custom configuration, saves and profiles. No active settings files are included in this ZIP. Copy into your existing installation; do not delete its settings folder.
+- Surface cabin: six smaller crates, three guards, the door guard's large objective key, and textured cabin interiors.
+- Mission-only Klobb pickup with the CMP150 action base, one-handed reload, accepted hand fit and louder GoldenEye reload audio. The Klobb is excluded from permanent weapon unlocks and saved loadouts.
+- Mission 5 table keycard placement correction. Shader pipeline work reduces render-thread waits; brief freezes may still occur.
+- Original F6 mouse/FOV controls restored. The failed in-game bug-report form has been removed.
+- Nightclub Easter egg: hold the crosshair over the disco ball for three continuous seconds to start the looping track.
+
+**Known limitations:** the nightclub feature works in the user's test, but further bugs were reported without details. Full mission and multiplayer regression testing is incomplete. This release does not claim to eliminate all gameplay freezes. The Mission 4 door was reported working and has no speculative door-specific fix.
+
+**Install this update manually:** close the game and copy the contents of `PDZ-Recomp` into your existing modded installation. The repository was renamed to `Perfect-Dark-Zero-Reinstated`; older updaters reject the new download address. This package fixes that check for future updates while retaining your existing updater configuration. Keep the EXE and both DLLs together. Base-game files are required separately. Existing explicit settings are respected, including settings that disable optional features.
+
+Validation: release build; gameplay policy regressions; three-second dwell checks across frame rates; updater checksum/rollback/path checks; byte-for-byte preservation checks for existing settings, saves and profiles. The released model and reload audio match the user-approved assets.

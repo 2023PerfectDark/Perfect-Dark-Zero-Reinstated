@@ -1,0 +1,1686 @@
+diff --git a/include/rex/graphics/command_processor.h b/include/rex/graphics/command_processor.h
+index da8e432..91fe325 100644
+--- a/include/rex/graphics/command_processor.h
++++ b/include/rex/graphics/command_processor.h
+@@ -158,10 +158,8 @@ class CommandProcessor {
+   void WriteLoopRangeFromMem(uint32_t start_index, uint32_t* base, uint32_t num_registers);
+   void WriteREGISTERSRangeFromMem(uint32_t start_index, uint32_t* base, uint32_t num_registers);
+ 
+-  const reg::DC_LUT_30_COLOR* gamma_ramp_256_entry_table() const {
+-    return gamma_ramp_256_entry_table_;
+-  }
+-  const reg::DC_LUT_PWL_DATA* gamma_ramp_pwl_rgb() const { return gamma_ramp_pwl_rgb_[0]; }
++  const reg::DC_LUT_30_COLOR* gamma_ramp_256_entry_table() const;
++  const reg::DC_LUT_PWL_DATA* gamma_ramp_pwl_rgb() const;
+   virtual void OnGammaRamp256EntryTableValueWritten() {}
+   virtual void OnGammaRampPWLValueWritten() {}
+ 
+@@ -280,6 +278,8 @@ class CommandProcessor {
+  private:
+   reg::DC_LUT_30_COLOR gamma_ramp_256_entry_table_[256] = {};
+   reg::DC_LUT_PWL_DATA gamma_ramp_pwl_rgb_[128][3] = {};
++  mutable reg::DC_LUT_30_COLOR lifted_gamma_table_[256] = {};
++  mutable reg::DC_LUT_PWL_DATA lifted_gamma_pwl_[128 * 3] = {};
+   uint32_t gamma_ramp_rw_component_ = 0;
+ };
+ 
+diff --git a/include/rex/graphics/d3d12/command_processor.h b/include/rex/graphics/d3d12/command_processor.h
+index 96d362b..1434cc9 100644
+--- a/include/rex/graphics/d3d12/command_processor.h
++++ b/include/rex/graphics/d3d12/command_processor.h
+@@ -11,6 +11,7 @@
+ 
+ #pragma once
+ 
++#include <mutex>
+ #include <algorithm>
+ #include <array>
+ #include <atomic>
+@@ -182,6 +183,12 @@ class D3D12CommandProcessor : public CommandProcessor {
+   ID3D12PipelineState* GetD3D12PipelineByHandle(void* handle) const {
+     return pipeline_cache_->GetD3D12PipelineByHandle(handle);
+   }
++  ID3D12PipelineState* ResolveD3D12PipelineForExecution(void* handle) const {
++    if (!pipeline_cache_->GetD3D12PipelineByHandle(handle)) {
++      pipeline_cache_->AwaitPipelineReady(handle);
++    }
++    return pipeline_cache_->GetD3D12PipelineByHandle(handle);
++  }
+ 
+   // Sets the current cached values to external ones. This is for cache
+   // invalidation primarily. A submission must be open.
+@@ -542,6 +549,7 @@ class D3D12CommandProcessor : public CommandProcessor {
+   std::unordered_map<uint32_t, uint32_t> texture_cache_bindless_sampler_map_;
+ 
+   // Root signatures for different descriptor counts.
++  std::mutex root_signatures_bindful_mutex_;
+   std::unordered_map<uint32_t, ID3D12RootSignature*> root_signatures_bindful_;
+   ID3D12RootSignature* root_signature_bindless_vs_ = nullptr;
+   ID3D12RootSignature* root_signature_bindless_ds_ = nullptr;
+diff --git a/include/rex/graphics/d3d12/pipeline_cache.h b/include/rex/graphics/d3d12/pipeline_cache.h
+index 7a9d6a2..8339439 100644
+--- a/include/rex/graphics/d3d12/pipeline_cache.h
++++ b/include/rex/graphics/d3d12/pipeline_cache.h
+@@ -16,6 +16,7 @@
+ #include <cstdio>
+ #include <deque>
+ #include <functional>
++#include <fstream>
+ #include <memory>
+ #include <mutex>
+ #include <queue>
+@@ -96,6 +97,10 @@ class PipelineCache {
+   ID3D12PipelineState* GetD3D12PipelineByHandle(void* handle) const {
+     return reinterpret_cast<const Pipeline*>(handle)->state.load(std::memory_order_acquire);
+   }
++  ID3D12RootSignature* GetRootSignatureByHandle(void* handle) const {
++    return reinterpret_cast<const Pipeline*>(handle)->root_signature.load(std::memory_order_acquire);
++  }
++  bool AwaitPipelineReady(void* handle);
+ 
+  private:
+   REXPACKEDSTRUCT(ShaderStoredHeader, {
+@@ -345,6 +350,7 @@ class PipelineCache {
+   struct Pipeline {
+     // nullptr if creation has failed.
+     std::atomic<ID3D12PipelineState*> state{nullptr};
++    std::atomic<bool> creation_complete{false};
+     std::atomic<ID3D12RootSignature*> root_signature{nullptr};
+     PipelineRuntimeDescription description;
+     D3D12Shader::D3D12Translation* pending_vertex_shader = nullptr;
+@@ -375,7 +381,7 @@ class PipelineCache {
+   // For only writing shaders to the currently open storage once, incremented
+   // when switching the storage.
+   uint32_t shader_storage_index_ = 0;
+-  bool shader_storage_file_flush_needed_ = false;
++  std::atomic<bool> shader_storage_file_flush_needed_{false};
+ 
+   // Pipeline storage output stream, for preload in the next emulator runs.
+   FILE* pipeline_storage_file_ = nullptr;
+@@ -396,9 +402,15 @@ class PipelineCache {
+ 
+   // Pipeline creation threads.
+   void CreationThread(size_t thread_index);
+-  void CreateQueuedPipelinesOnProcessorThread();
++  void AwaitPipelineCreation();
++  // Processor-thread-only diagnostics, independent of the user's log level.
++  // Bounded to avoid turning a long play session into continuous disk traffic.
++  std::ofstream preparation_trace_;
++  uint64_t preparation_start_ticks_ = 0;
++  size_t preparation_trace_count_ = 0;
+   std::mutex creation_request_lock_;
+   std::condition_variable creation_request_cond_;
++  std::condition_variable creation_finished_cond_;
+   // Protected with creation_request_lock_, notify_one creation_request_cond_
+   // when set.
+   std::priority_queue<Pipeline*, std::vector<Pipeline*>, PipelineCreationPriorityComparator>
+diff --git a/include/rex/graphics/d3d12/shader.h b/include/rex/graphics/d3d12/shader.h
+index eb48eff..ffe01ba 100644
+--- a/include/rex/graphics/d3d12/shader.h
++++ b/include/rex/graphics/d3d12/shader.h
+@@ -25,10 +25,17 @@ class D3D12Shader : public DxbcShader {
+     D3D12Translation(D3D12Shader& shader, uint64_t modification)
+         : DxbcTranslation(shader, modification) {}
+ 
++    // Publish only after translation AND the backend binding layout are ready.
++    // The translator's is_translated flag is set earlier and is not atomic.
++    bool is_prepared() const { return prepared_.load(std::memory_order_acquire); }
++    void PublishPrepared() { prepared_.store(true, std::memory_order_release); }
++
+     void DisassembleDxbcAndDxil(const ui::d3d12::D3D12Provider& provider, bool disassemble_dxbc,
+                                 IDxbcConverter* dxbc_converter = nullptr,
+                                 IDxcUtils* dxc_utils = nullptr,
+                                 IDxcCompiler* dxc_compiler = nullptr);
++   private:
++    std::atomic<bool> prepared_{false};
+   };
+ 
+   D3D12Shader(xenos::ShaderType shader_type, uint64_t ucode_data_hash, const uint32_t* ucode_dwords,
+diff --git a/include/rex/graphics/shader_worker_budget.h b/include/rex/graphics/shader_worker_budget.h
+new file mode 100644
+index 0000000..f0ebe44
+--- /dev/null
++++ b/include/rex/graphics/shader_worker_budget.h
+@@ -0,0 +1,16 @@
++#pragma once
++
++#include <algorithm>
++#include <cstddef>
++
++namespace rex::graphics {
++// Leave capacity for emulated CPUs, streaming, audio and presentation. Unknown
++// topology is deliberately conservative; a single-core host still needs a
++// worker to make progress without turning asynchronous compilation off.
++constexpr size_t ShaderWorkerBudget(size_t logical_processors, int requested = -1) {
++  const size_t automatic = std::clamp(logical_processors / 4, size_t(1), size_t(4));
++  if (requested < 0) return automatic;
++  if (requested == 0) return 0;
++  return std::min(size_t(requested), std::max(logical_processors, size_t(1)));
++}
++}  // namespace rex::graphics
+diff --git a/include/rex/graphics/shadow_lift.h b/include/rex/graphics/shadow_lift.h
+new file mode 100644
+index 0000000..6543d67
+--- /dev/null
++++ b/include/rex/graphics/shadow_lift.h
+@@ -0,0 +1,17 @@
++#pragma once
++#include <algorithm>
++#include <cmath>
++#include <cstdint>
++
++namespace rex::graphics {
++// A small exposure-like lift confined to shadows. Endpoints remain unchanged,
++// unlike an additive brightness offset. Monotonic for strength in [0, 0.5].
++inline uint32_t LiftShadowSample(uint32_t value, uint32_t maximum, double strength) {
++  value = std::min(value, maximum);
++  if (!std::isfinite(strength) || strength <= 0.0) return value;
++  const double x = double(value) / maximum;
++  const double inverse = 1.0 - x;
++  const double result = x + std::min(strength, 0.5) * x * inverse * inverse * inverse;
++  return uint32_t(std::clamp(result * maximum + 0.5, 0.0, double(maximum)));
++}
++} // namespace rex::graphics
+diff --git a/include/rex/platform/fpscr.h b/include/rex/platform/fpscr.h
+index c2c4fd4..eb7520b 100644
+--- a/include/rex/platform/fpscr.h
++++ b/include/rex/platform/fpscr.h
+@@ -48,6 +48,13 @@ struct FPSCRPlatform {
+   static inline void InitHostExceptions(u32& csr) noexcept {
+     csr |= ExceptionMask;  // Set mask bits to disable exceptions
+   }
++
++  // Forces host FP exceptions masked regardless of csr's prior state. Needed
++  // because callers like enableFlushModeUnconditional/storeFromGuest write a
++  // csr value that may have gone stale/lost its exception-mask bits (e.g. a
++  // fresh CallFrame copy) - blindly setcsr()'ing that would unmask host FP
++  // exceptions and turn a routine inexact/denormal result into a hard trap.
++  static constexpr u32 DisableExceptions(u32 csr) noexcept { return csr | ExceptionMask; }
+ };
+ 
+ #elif defined(__aarch64__) || defined(_M_ARM64)
+@@ -80,6 +87,10 @@ struct FPSCRPlatform {
+   static inline void InitHostExceptions(u32& csr) noexcept {
+     csr &= ~ExceptionMask;  // Clear enable bits to disable exceptions
+   }
++
++  // See x86_64 DisableExceptions above - same purpose, inverted polarity
++  // (ARM: 1 = exception enabled, so it must be cleared instead of set).
++  static constexpr u32 DisableExceptions(u32 csr) noexcept { return csr & ~ExceptionMask; }
+ };
+ 
+ #else
+diff --git a/include/rex/ppc/context.h b/include/rex/ppc/context.h
+index 0ede542..929a651 100644
+--- a/include/rex/ppc/context.h
++++ b/include/rex/ppc/context.h
+@@ -174,30 +174,30 @@ struct FPSCRRegister {
+   inline void storeFromGuest(uint32_t value) noexcept {
+     csr &= ~RoundMaskVal;
+     csr |= Platform::GuestToHost[value & kRoundMask];
+-    setcsr(csr);
++    setcsr(Platform::DisableExceptions(csr));
+   }
+ 
+   inline void enableFlushModeUnconditional() noexcept {
+     csr |= FlushMask;
+-    setcsr(csr);
++    setcsr(Platform::DisableExceptions(csr));
+   }
+ 
+   inline void disableFlushModeUnconditional() noexcept {
+     csr &= ~FlushMask;
+-    setcsr(csr);
++    setcsr(Platform::DisableExceptions(csr));
+   }
+ 
+   inline void enableFlushMode() noexcept {
+     if ((csr & FlushMask) != FlushMask) [[unlikely]] {
+       csr |= FlushMask;
+-      setcsr(csr);
++      setcsr(Platform::DisableExceptions(csr));
+     }
+   }
+ 
+   inline void disableFlushMode() noexcept {
+     if ((csr & FlushMask) != 0) [[unlikely]] {
+       csr &= ~FlushMask;
+-      setcsr(csr);
++      setcsr(Platform::DisableExceptions(csr));
+     }
+   }
+ 
+diff --git a/include/rex/rex_app.h b/include/rex/rex_app.h
+index 9672d33..a2a23d1 100644
+--- a/include/rex/rex_app.h
++++ b/include/rex/rex_app.h
+@@ -301,6 +301,8 @@ class ReXApp : public ui::WindowedApp, public ui::WindowListener, public ui::Win
+   std::unique_ptr<ui::Window> window_;
+   std::thread module_thread_;
+   std::atomic<bool> shutting_down_{false};
++  std::atomic<bool> shader_warmup_active_{false};
++  std::unique_ptr<ui::ImGuiDialog> shader_warmup_dialog_;
+   std::unique_ptr<ui::ImmediateDrawer> immediate_drawer_;
+   std::unique_ptr<ui::ImGuiDrawer> imgui_drawer_;
+ 
+diff --git a/include/rex/system/xam/user_profile.h b/include/rex/system/xam/user_profile.h
+index ec37017..7de59ab 100644
+--- a/include/rex/system/xam/user_profile.h
++++ b/include/rex/system/xam/user_profile.h
+@@ -214,7 +214,8 @@ class UserProfile {
+     }
+   };
+ 
+-  UserProfile();
++  UserProfile(uint64_t xuid = 0xB13EBABEBABEBABE,
++              std::string name = "User", bool persistent = true);
+ 
+   uint64_t xuid() const { return xuid_; }
+   std::string name() const { return name_; }
+@@ -229,6 +230,7 @@ class UserProfile {
+  private:
+   uint64_t xuid_;
+   std::string name_;
++  bool persistent_ = true;
+   std::vector<std::unique_ptr<Setting>> setting_list_;
+   std::unordered_map<uint32_t, Setting*> settings_;
+   KernelState* kernel_state_ = nullptr;
+diff --git a/include/rex/system/xam/virtual_coop.h b/include/rex/system/xam/virtual_coop.h
+new file mode 100644
+index 0000000..a9e547f
+--- /dev/null
++++ b/include/rex/system/xam/virtual_coop.h
+@@ -0,0 +1,12 @@
++#pragma once
++#include <rex/cvar.h>
++
++// Opt-in test bridge. Never expose a guest to solo or ordinary local play.
++REXCVAR_DECLARE(bool, virtual_coop_guest);
++namespace rex::system::xam {
++void SetVirtualCoopGuest(bool enabled);
++inline constexpr uint64_t kVirtualCoopXuid = 0xB13EBABEBABEBABF;
++inline bool IsVirtualCoopGuest(uint32_t index) {
++  return index == 1 && REXCVAR_GET(virtual_coop_guest);
++}
++}
+diff --git a/include/rex/system/xam/virtual_coop_input.h b/include/rex/system/xam/virtual_coop_input.h
+new file mode 100644
+index 0000000..e4a3df1
+--- /dev/null
++++ b/include/rex/system/xam/virtual_coop_input.h
+@@ -0,0 +1,54 @@
++#pragma once
++#include <cstdint>
++#include <mutex>
++
++namespace rex::system::xam {
++struct VirtualCoopCommand {
++  uint16_t buttons{};
++  uint8_t left_trigger{}, right_trigger{};
++  int16_t left_x{}, left_y{}, right_x{}, right_y{};
++  bool operator==(const VirtualCoopCommand&) const = default;
++};
++struct VirtualCoopSnapshot {
++  uint32_t packet{};
++  VirtualCoopCommand command{};
++};
++
++// A command is a short lease, not a latched controller state. Pauses, loading,
++// or a failed AI update must release firing and movement automatically.
++class VirtualCoopInput {
++ public:
++  void Submit(VirtualCoopCommand command, uint64_t now_ms) {
++    std::lock_guard lock(mutex_);
++    Set(command);
++    updated_ms_ = now_ms;
++    valid_ = true;
++  }
++  VirtualCoopSnapshot Read(uint64_t now_ms) {
++    std::lock_guard lock(mutex_);
++    if (!valid_ || now_ms < updated_ms_ || now_ms - updated_ms_ >= 250) {
++      Set({});
++      valid_ = false;
++    }
++    return state_;
++  }
++  void Reset() {
++    std::lock_guard lock(mutex_);
++    Set({});
++    valid_ = false;
++  }
++ private:
++  void Set(VirtualCoopCommand command) {
++    if (!(state_.command == command)) {
++      state_.command = command;
++      ++state_.packet;
++    }
++  }
++  std::mutex mutex_;
++  VirtualCoopSnapshot state_{};
++  uint64_t updated_ms_{};
++  bool valid_{};
++};
++void SubmitVirtualCoopInput(VirtualCoopCommand command);
++void ResetVirtualCoopInput();
++}
+diff --git a/src/graphics/command_processor.cpp b/src/graphics/command_processor.cpp
+index a744375..c159621 100644
+--- a/src/graphics/command_processor.cpp
++++ b/src/graphics/command_processor.cpp
+@@ -22,6 +22,7 @@
+ #include <rex/perf/counter.h>
+ #include <rex/chrono/clock.h>
+ #include <rex/graphics/command_processor.h>
++#include <rex/graphics/shadow_lift.h>
+ #include <rex/graphics/flags.h>
+ #include <rex/graphics/graphics_system.h>
+ #include <rex/graphics/pipeline/texture/info.h>
+@@ -36,6 +37,9 @@
+ #include <rex/system/user_module.h>
+ 
+ REXCVAR_DEFINE_BOOL(vsync, true, "GPU", "Enable vertical sync");
++REXCVAR_DEFINE_DOUBLE(pdz_shadow_lift, 0.0, "GPU",
++    "Lift dark tones while preserving black and white endpoints. 0 restores original; restart after changing.")
++    .range(0.0, 0.5);
+ 
+ REXCVAR_DEFINE_BOOL(clear_memory_page_state, true, "GPU",
+                     "Refresh page-valid state from GPU-written memory at frame end. "
+@@ -82,6 +86,33 @@ REXCVAR_DEFINE_BOOL(async_shader_compilation, true, "GPU",
+ 
+ namespace rex::graphics {
+ 
++const reg::DC_LUT_30_COLOR* CommandProcessor::gamma_ramp_256_entry_table() const {
++  const double strength = REXCVAR_GET(pdz_shadow_lift);
++  if (!(strength > 0.0)) return gamma_ramp_256_entry_table_;
++  for (size_t i = 0; i < 256; ++i) {
++    auto value = gamma_ramp_256_entry_table_[i];
++    value.color_10_red = LiftShadowSample(value.color_10_red, 1023, strength);
++    value.color_10_green = LiftShadowSample(value.color_10_green, 1023, strength);
++    value.color_10_blue = LiftShadowSample(value.color_10_blue, 1023, strength);
++    lifted_gamma_table_[i] = value;
++  }
++  return lifted_gamma_table_;
++}
++
++const reg::DC_LUT_PWL_DATA* CommandProcessor::gamma_ramp_pwl_rgb() const {
++  const double strength = REXCVAR_GET(pdz_shadow_lift);
++  if (!(strength > 0.0)) return gamma_ramp_pwl_rgb_[0];
++  for (size_t i = 0; i < 128; ++i) for (size_t channel = 0; channel < 3; ++channel) {
++    auto value = gamma_ramp_pwl_rgb_[i][channel];
++    const uint32_t start = LiftShadowSample(value.base, 65535, strength);
++    const uint32_t end = LiftShadowSample(uint32_t(value.base) + value.delta, 65535, strength);
++    value.base = start;
++    value.delta = end - start;
++    lifted_gamma_pwl_[i * 3 + channel] = value;
++  }
++  return lifted_gamma_pwl_;
++}
++
+ using namespace rex::graphics::xenos;
+ 
+ namespace {
+diff --git a/src/graphics/d3d12/command_processor.cpp b/src/graphics/d3d12/command_processor.cpp
+index 19874a5..3b9e018 100644
+--- a/src/graphics/d3d12/command_processor.cpp
++++ b/src/graphics/d3d12/command_processor.cpp
+@@ -296,6 +296,7 @@ ID3D12RootSignature* D3D12CommandProcessor::GetRootSignature(const DxbcShader* v
+   ++index_offset;
+   assert_true(index_offset <= 32);
+ 
++  std::lock_guard<std::mutex> root_lock(root_signatures_bindful_mutex_);
+   // Try an existing root signature.
+   auto it = root_signatures_bindful_.find(index);
+   if (it != root_signatures_bindful_.end()) {
+@@ -2398,10 +2399,11 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type, uint3
+           bound_depth_and_color_render_target_formats, &pipeline_handle, &root_signature)) {
+     return false;
+   }
+-  if (REXCVAR_GET(async_shader_compilation) &&
+-      pipeline_cache_->GetD3D12PipelineByHandle(pipeline_handle) == nullptr) {
+-    return true;
+-  }
++  // Translation and binding metadata are complete, so record the draw while
++  // the driver compiles its PSO. DeferredCommandList awaits the PSO before
++  // executing it, preserving every material pass without serializing creation
++  // of all the other new pipelines needed by this submission.
++  root_signature = pipeline_cache_->GetRootSignatureByHandle(pipeline_handle);
+ 
+   // Update the textures - this may bind pipelines.
+   uint32_t used_texture_mask =
+@@ -3497,7 +3499,8 @@ bool D3D12CommandProcessor::EndSubmission(bool is_swap) {
+ }
+ 
+ bool D3D12CommandProcessor::CanEndSubmissionImmediately() const {
+-  return !submission_open_ || !pipeline_cache_->IsCreatingPipelines();
++  return REXCVAR_GET(async_shader_compilation) || !submission_open_ ||
++         !pipeline_cache_->IsCreatingPipelines();
+ }
+ 
+ void D3D12CommandProcessor::ClearCommandAllocatorCache() {
+diff --git a/src/graphics/d3d12/deferred_command_list.cpp b/src/graphics/d3d12/deferred_command_list.cpp
+index e6d6277..e690e6e 100644
+--- a/src/graphics/d3d12/deferred_command_list.cpp
++++ b/src/graphics/d3d12/deferred_command_list.cpp
+@@ -238,7 +238,7 @@ void DeferredCommandList::Execute(ID3D12GraphicsCommandList* command_list,
+       } break;
+       case Command::kSetPipelineStateHandle: {
+         current_pipeline_state =
+-            command_processor_.GetD3D12PipelineByHandle(*reinterpret_cast<void* const*>(stream));
++            command_processor_.ResolveD3D12PipelineForExecution(*reinterpret_cast<void* const*>(stream));
+         if (current_pipeline_state) {
+           command_list->SetPipelineState(current_pipeline_state);
+         }
+diff --git a/src/graphics/d3d12/pipeline_cache.cpp b/src/graphics/d3d12/pipeline_cache.cpp
+index 8e6b854..c1edfff 100644
+--- a/src/graphics/d3d12/pipeline_cache.cpp
++++ b/src/graphics/d3d12/pipeline_cache.cpp
+@@ -36,6 +36,7 @@
+ #include <rex/graphics/flags.h>
+ #include <rex/graphics/format/dxbc.h>
+ #include <rex/graphics/pipeline_util.h>
++#include <rex/graphics/shader_worker_budget.h>
+ #include <rex/graphics/pipeline/shader/dxbc_translator.h>
+ #include <rex/graphics/registers.h>
+ #include <rex/graphics/util/draw.h>
+@@ -55,7 +56,7 @@ REXCVAR_DEFINE_BOOL(d3d12_dxbc_disasm_dxilconv, false, "GPU/D3D12",
+                     "Dump DXIL conversion disassembly");
+ 
+ REXCVAR_DEFINE_INT32(d3d12_pipeline_creation_threads, -1, "GPU/D3D12",
+-                     "Number of pipeline creation threads (-1 for auto)")
++                     "Pipeline workers (-1: quarter of logical CPUs, at most 4; 0: synchronous)")
+     .range(-1, 32)
+     .lifecycle(rex::cvar::Lifecycle::kRequiresRestart);
+ 
+@@ -136,11 +137,7 @@ bool PipelineCache::Initialize() {
+     }
+   }
+ 
+-  uint32_t logical_processor_count = rex::thread::logical_processor_count();
+-  if (!logical_processor_count) {
+-    // Pick some reasonable amount if couldn't determine the number of cores.
+-    logical_processor_count = 6;
+-  }
++  const size_t logical_processor_count = rex::thread::logical_processor_count();
+   // Initialize creation thread synchronization data even if not using creation
+   // threads because they may be used anyway to create pipelines from the
+   // storage.
+@@ -150,16 +147,15 @@ bool PipelineCache::Initialize() {
+   creation_completion_set_event_ = false;
+   creation_threads_shutdown_from_ = SIZE_MAX;
+   if (REXCVAR_GET(d3d12_pipeline_creation_threads) != 0) {
+-    size_t creation_thread_count;
+-    if (REXCVAR_GET(d3d12_pipeline_creation_threads) < 0) {
+-      creation_thread_count = std::max(logical_processor_count * 3 / 4, uint32_t(1));
+-    } else {
+-      creation_thread_count =
+-          std::min(uint32_t(REXCVAR_GET(d3d12_pipeline_creation_threads)), logical_processor_count);
+-    }
++    const size_t creation_thread_count = ShaderWorkerBudget(
++        logical_processor_count, REXCVAR_GET(d3d12_pipeline_creation_threads));
++    REXGPU_INFO("Shader compilation budget: {} background workers for {} logical CPUs",
++                creation_thread_count, logical_processor_count);
+     for (size_t i = 0; i < creation_thread_count; ++i) {
+       std::unique_ptr<rex::thread::Thread> creation_thread =
+-          rex::thread::Thread::Create({}, [this, i]() { CreationThread(i); });
++          rex::thread::Thread::Create(
++              {.initial_priority = rex::thread::ThreadPriority::kBelowNormal},
++              [this, i]() { CreationThread(i); });
+       assert_not_null(creation_thread);
+       creation_thread->set_name("D3D12 Pipelines");
+       creation_threads_.push_back(std::move(creation_thread));
+@@ -223,6 +219,15 @@ void PipelineCache::InitializeShaderStorage(const std::filesystem::path& cache_r
+   ShutdownShaderStorage();
+ 
+   auto shader_storage_root = cache_root / "shaders";
++  if (!preparation_trace_.is_open()) {
++    std::error_code trace_error;
++    std::filesystem::create_directories(cache_root, trace_error);
++    preparation_trace_.open(cache_root / "shader-preparation.log", std::ios::trunc);
++    preparation_start_ticks_ = rex::chrono::Clock::QueryHostTickCount();
++    preparation_trace_count_ = 0;
++  }
++  preparation_trace_ << "preload_begin title=" << std::hex << title_id
++                     << std::dec << " blocking=" << blocking << std::endl;
+   // For files that can be moved between different hosts.
+   // Host PSO blobs - if ever added - should be stored in shaders/local/ (they
+   // currently aren't used because because they may be not very practical -
+@@ -318,11 +323,8 @@ void PipelineCache::InitializeShaderStorage(const std::filesystem::path& cache_r
+     }
+   }
+ 
+-  size_t logical_processor_count = rex::thread::logical_processor_count();
+-  if (!logical_processor_count) {
+-    // Pick some reasonable amount if couldn't determine the number of cores.
+-    logical_processor_count = 6;
+-  }
++  const size_t translation_worker_budget = std::max(size_t(1), ShaderWorkerBudget(
++      rex::thread::logical_processor_count(), REXCVAR_GET(d3d12_pipeline_creation_threads)));
+ 
+   // Initialize the Xenos shader storage stream.
+   uint64_t shader_storage_initialization_start = rex::chrono::Clock::QueryHostTickCount();
+@@ -417,7 +419,7 @@ void PipelineCache::InitializeShaderStorage(const std::filesystem::path& cache_r
+           // If it's a shader previously encountered in the game, translation of
+           // which has failed, and the shader storage is loaded later, keep it
+           // this way not to try to translate it again.
+-          if (!translation->is_translated() &&
++          if (!translation->is_prepared() &&
+               !TranslateAnalyzedShader(translator, *translation, dxbc_converter, dxc_utils,
+                                        dxc_compiler)) {
+             std::lock_guard<std::mutex> lock(shaders_failed_to_translate_mutex);
+@@ -466,18 +468,19 @@ void PipelineCache::InitializeShaderStorage(const std::filesystem::path& cache_r
+       }
+       // Loaded from the current storage - don't write again.
+       shader->set_ucode_storage_index(shader_storage_index_);
+-      // Create new threads if the currently existing threads can't keep up
+-      // with file reading, but not more than the number of logical processors
+-      // minus one.
++      // Use the same bounded budget for cached shader translation as for PSOs.
++      // This must stay nonzero on single-core / unknown-topology hosts.
+       size_t shader_translation_threads_needed;
+       {
+         std::lock_guard<std::mutex> lock(shaders_translation_thread_mutex);
+         shader_translation_threads_needed =
+             std::min(shader_translation_threads_busy + shaders_to_translate.size() + size_t(1),
+-                     logical_processor_count - size_t(1));
++                     translation_worker_budget);
+       }
+       while (shader_translation_threads.size() < shader_translation_threads_needed) {
+-        auto thread = rex::thread::Thread::Create({}, shader_translation_thread_function);
++        auto thread = rex::thread::Thread::Create(
++            {.initial_priority = rex::thread::ThreadPriority::kBelowNormal},
++            shader_translation_thread_function);
+         assert_not_null(thread);
+         thread->set_name("Shader Translation");
+         shader_translation_threads.push_back(std::move(thread));
+@@ -526,21 +529,8 @@ void PipelineCache::InitializeShaderStorage(const std::filesystem::path& cache_r
+   if (!pipeline_stored_descriptions.empty()) {
+     uint64_t pipeline_creation_start_ = rex::chrono::Clock::QueryHostTickCount();
+ 
+-    // Launch additional creation threads to use all cores to create
+-    // pipelines faster. Will also be using the main thread, so minus 1.
+-    size_t creation_thread_original_count = creation_threads_.size();
+-    size_t creation_thread_needed_count =
+-        std::max(std::min(pipeline_stored_descriptions.size(), logical_processor_count) - size_t(1),
+-                 creation_thread_original_count);
+-    while (creation_threads_.size() < creation_thread_original_count) {
+-      size_t creation_thread_index = creation_threads_.size();
+-      std::unique_ptr<rex::thread::Thread> creation_thread = rex::thread::Thread::Create(
+-          {}, [this, creation_thread_index]() { CreationThread(creation_thread_index); });
+-      assert_not_null(creation_thread);
+-      creation_thread->set_name("D3D12 Pipelines");
+-      creation_threads_.push_back(std::move(creation_thread));
+-    }
+-
++    // Reuse the bounded pool. Do not create an all-core preload pool or make
++    // the graphics processor compile alongside the workers.
+     size_t pipelines_created = 0;
+     for (const PipelineStoredDescription& pipeline_stored_description :
+          pipeline_stored_descriptions) {
+@@ -571,7 +561,7 @@ void PipelineCache::InitializeShaderStorage(const std::filesystem::path& cache_r
+       pipeline_runtime_description.vertex_shader = static_cast<D3D12Shader::D3D12Translation*>(
+           vertex_shader->GetTranslation(pipeline_description.vertex_shader_modification));
+       if (!pipeline_runtime_description.vertex_shader ||
+-          !pipeline_runtime_description.vertex_shader->is_translated() ||
++          !pipeline_runtime_description.vertex_shader->is_prepared() ||
+           !pipeline_runtime_description.vertex_shader->is_valid()) {
+         continue;
+       }
+@@ -585,7 +575,7 @@ void PipelineCache::InitializeShaderStorage(const std::filesystem::path& cache_r
+         pipeline_runtime_description.pixel_shader = static_cast<D3D12Shader::D3D12Translation*>(
+             pixel_shader->GetTranslation(pipeline_description.pixel_shader_modification));
+         if (!pipeline_runtime_description.pixel_shader ||
+-            !pipeline_runtime_description.pixel_shader->is_translated() ||
++            !pipeline_runtime_description.pixel_shader->is_prepared() ||
+             !pipeline_runtime_description.pixel_shader->is_valid()) {
+           continue;
+         }
+@@ -646,47 +636,17 @@ void PipelineCache::InitializeShaderStorage(const std::filesystem::path& cache_r
+       } else {
+         new_pipeline->state.store(CreateD3D12Pipeline(pipeline_runtime_description),
+                                   std::memory_order_release);
++        new_pipeline->creation_complete.store(true, std::memory_order_release);
+       }
+       ++pipelines_created;
+     }
+ 
+-    if (!creation_threads_.empty()) {
+-      CreateQueuedPipelinesOnProcessorThread();
+-      if (creation_threads_.size() > creation_thread_original_count) {
+-        {
+-          std::lock_guard<std::mutex> lock(creation_request_lock_);
+-          creation_threads_shutdown_from_ = creation_thread_original_count;
+-          // Assuming the queue is empty because of
+-          // CreateQueuedPipelinesOnProcessorThread.
+-        }
+-        creation_request_cond_.notify_all();
+-        while (creation_threads_.size() > creation_thread_original_count) {
+-          rex::thread::Wait(creation_threads_.back().get(), false);
+-          creation_threads_.pop_back();
+-        }
+-        bool await_creation_completion_event;
+-        {
+-          // Cleanup so additional threads can be created later again.
+-          std::lock_guard<std::mutex> lock(creation_request_lock_);
+-          creation_threads_shutdown_from_ = SIZE_MAX;
+-          // If the invocation is blocking, all the shader storage
+-          // initialization is expected to be done before proceeding, to avoid
+-          // latency in the command processor after the invocation.
+-          await_creation_completion_event = blocking && creation_threads_busy_ != 0;
+-          if (await_creation_completion_event) {
+-            creation_completion_event_->Reset();
+-            creation_completion_set_event_ = true;
+-          }
+-        }
+-        if (await_creation_completion_event) {
+-          creation_request_cond_.notify_one();
+-          rex::thread::Wait(creation_completion_event_.get(), false);
+-        }
+-      }
++    if (blocking) {
++      AwaitPipelineCreation();
+     }
+ 
+     REXGPU_INFO(
+-        "Created {} graphics pipelines (not including reading the "
++        "Prepared {} cached graphics pipeline requests (not including reading the "
+         "descriptions) from the storage in {} milliseconds",
+         pipelines_created,
+         (rex::chrono::Clock::QueryHostTickCount() - pipeline_creation_start_) * 1000 /
+@@ -709,6 +669,21 @@ void PipelineCache::InitializeShaderStorage(const std::filesystem::path& cache_r
+   shader_storage_cache_root_ = cache_root;
+   shader_storage_title_id_ = title_id;
+ 
++  size_t trace_ready = 0, trace_failed = 0, trace_pending = 0;
++  for (const auto& entry : pipelines_) {
++    const auto* pipeline = entry.second;
++    if (!pipeline->creation_complete.load(std::memory_order_acquire)) ++trace_pending;
++    else if (pipeline->state.load(std::memory_order_acquire)) ++trace_ready;
++    else ++trace_failed;
++  }
++  preparation_trace_ << "preload_end descriptors=" << pipeline_stored_descriptions.size()
++                     << " shaders=" << shaders_.size() << " ready=" << trace_ready
++                     << " failed=" << trace_failed << " pending=" << trace_pending
++                     << " elapsed_ms="
++                     << (rex::chrono::Clock::QueryHostTickCount() - preparation_start_ticks_) *
++                            1000 / rex::chrono::Clock::QueryHostTickFrequency()
++                     << std::endl;
++
+   // Start the storage writing thread.
+   storage_write_flush_shaders_ = false;
+   storage_write_flush_pipelines_ = false;
+@@ -719,6 +694,9 @@ void PipelineCache::InitializeShaderStorage(const std::filesystem::path& cache_r
+ }
+ 
+ void PipelineCache::ShutdownShaderStorage() {
++  // Workers can still append translated shaders when async jobs span frames.
++  // Drain them before changing the storage streams or destroying their writer.
++  AwaitPipelineCreation();
+   if (storage_write_thread_) {
+     {
+       std::lock_guard<std::mutex> lock(storage_write_request_lock_);
+@@ -748,10 +726,11 @@ void PipelineCache::ShutdownShaderStorage() {
+ }
+ 
+ void PipelineCache::EndSubmission() {
+-  if (shader_storage_file_flush_needed_ || pipeline_storage_file_flush_needed_) {
++  const bool flush_shaders = shader_storage_file_flush_needed_.exchange(false);
++  if (flush_shaders || pipeline_storage_file_flush_needed_) {
+     {
+       std::lock_guard<std::mutex> lock(storage_write_request_lock_);
+-      if (shader_storage_file_flush_needed_) {
++      if (flush_shaders) {
+         storage_write_flush_shaders_ = true;
+       }
+       if (pipeline_storage_file_flush_needed_) {
+@@ -759,28 +738,13 @@ void PipelineCache::EndSubmission() {
+       }
+     }
+     storage_write_request_cond_.notify_one();
+-    shader_storage_file_flush_needed_ = false;
+     pipeline_storage_file_flush_needed_ = false;
+   }
+-  if (!creation_threads_.empty()) {
+-    CreateQueuedPipelinesOnProcessorThread();
+-    // Await creation of all queued pipelines.
+-    bool await_creation_completion_event;
+-    {
+-      std::lock_guard<std::mutex> lock(creation_request_lock_);
+-      // Assuming the creation queue is already empty (because the processor
+-      // thread also worked on creating the leftover pipelines), so only check
+-      // if there are threads with pipelines currently being created.
+-      await_creation_completion_event = creation_threads_busy_ != 0;
+-      if (await_creation_completion_event) {
+-        creation_completion_event_->Reset();
+-        creation_completion_set_event_ = true;
+-      }
+-    }
+-    if (await_creation_completion_event) {
+-      creation_request_cond_.notify_one();
+-      rex::thread::Wait(creation_completion_event_.get(), false);
+-    }
++  // Deferred command execution waits only for the pipelines it references.
++  // Do not drain unrelated background jobs. Retain the full barrier if
++  // synchronous rendering was selected mid-session.
++  if (!REXCVAR_GET(async_shader_compilation)) {
++    AwaitPipelineCreation();
+   }
+ }
+ 
+@@ -920,14 +884,16 @@ bool PipelineCache::ConfigurePipeline(
+                   xenos::VertexShaderExportMode::kPosition2VectorsEdgeKill);
+   assert_false(register_file_.Get<reg::SQ_PROGRAM_CNTL>().gen_index_vtx);
+   // Ucode analysis is always needed on the main thread (for modification and
+-  // hash computation). Translation can be deferred to background threads when
+-  // async compilation is enabled.
++  // hash computation). Finish translation and the binding layout here, but
++  // leave expensive driver PSO creation to the workers. This lets subsequent
++  // draws queue their PSOs while earlier ones are compiling. Waiting for each
++  // PSO here serialized first-use compilation (250-380 ms per material in PDZ).
+   if (!vertex_shader->shader().is_ucode_analyzed()) {
+     vertex_shader->shader().AnalyzeUcode(ucode_disasm_buffer_);
+   }
+-  if (!vertex_shader->is_translated() && !use_async) {
++  if (!vertex_shader->is_prepared()) {
+     std::lock_guard<std::mutex> lock(translation_request_lock_);
+-    if (!vertex_shader->is_translated()) {
++    if (!vertex_shader->is_prepared()) {
+       if (!TranslateAnalyzedShader(*shader_translator_, *vertex_shader, dxbc_converter_, dxc_utils_,
+                                    dxc_compiler_)) {
+         REXGPU_ERROR("Failed to translate the vertex shader!");
+@@ -946,14 +912,14 @@ bool PipelineCache::ConfigurePipeline(
+       }
+     }
+   }
+-  if (!use_async && !vertex_shader->is_valid()) {
++  if (!vertex_shader->is_valid()) {
+     // Translation attempted previously, but not valid.
+     return false;
+   }
+   if (pixel_shader != nullptr) {
+-    if (!pixel_shader->is_translated() && !use_async) {
++    if (!pixel_shader->is_prepared()) {
+       std::lock_guard<std::mutex> lock(translation_request_lock_);
+-      if (!pixel_shader->is_translated()) {
++      if (!pixel_shader->is_prepared()) {
+         pixel_shader->shader().AnalyzeUcode(ucode_disasm_buffer_);
+         if (!TranslateAnalyzedShader(*shader_translator_, *pixel_shader, dxbc_converter_,
+                                      dxc_utils_, dxc_compiler_)) {
+@@ -973,7 +939,7 @@ bool PipelineCache::ConfigurePipeline(
+         }
+       }
+     }
+-    if (pixel_shader->is_translated() && !pixel_shader->is_valid()) {
++    if (pixel_shader->is_prepared() && !pixel_shader->is_valid()) {
+       return false;
+     }
+   }
+@@ -982,7 +948,7 @@ bool PipelineCache::ConfigurePipeline(
+   if (!GetCurrentStateDescription(
+           vertex_shader, pixel_shader, primitive_processing_result, normalized_depth_control,
+           normalized_color_mask, bound_depth_and_color_render_target_bits,
+-          bound_depth_and_color_render_target_formats, runtime_description, use_async)) {
++          bound_depth_and_color_render_target_formats, runtime_description, false)) {
+     return false;
+   }
+   PipelineDescription& description = runtime_description.description;
+@@ -1024,8 +990,8 @@ bool PipelineCache::ConfigurePipeline(
+                                             : normalized_depth_control.z_write_enable != 0;
+     new_pipeline->priority = pipeline_util::CalculatePipelinePriority(
+         bound_rts, shader_writes_color_targets, shader_writes_depth);
+-    new_pipeline->pending_vertex_shader = vertex_shader;
+-    new_pipeline->pending_pixel_shader = pixel_shader;
++    // Shaders and the root signature are already prepared above. Workers must
++    // not mutate their binding metadata while the draw is being recorded.
+     // Submit the pipeline for creation to any available thread.
+     {
+       std::lock_guard<std::mutex> lock(creation_request_lock_);
+@@ -1034,6 +1000,7 @@ bool PipelineCache::ConfigurePipeline(
+     creation_request_cond_.notify_one();
+   } else {
+     new_pipeline->state.store(CreateD3D12Pipeline(runtime_description), std::memory_order_release);
++    new_pipeline->creation_complete.store(true, std::memory_order_release);
+   }
+ 
+   if (pipeline_storage_file_) {
+@@ -1065,6 +1032,7 @@ bool PipelineCache::TranslateAnalyzedShader(DxbcShaderTranslator& translator,
+   // If this fails the shader will be marked as invalid and ignored later.
+   if (!translator.TranslateAnalyzedShader(translation)) {
+     REXGPU_ERROR("Shader {:016X} translation failed; marking as ignored", shader.ucode_data_hash());
++    translation.PublishPrepared();
+     return false;
+   }
+ 
+@@ -1229,6 +1197,7 @@ bool PipelineCache::TranslateAnalyzedShader(DxbcShaderTranslator& translator,
+                                                     : "d3d12");
+   }
+ 
++  translation.PublishPrepared();
+   return translation.is_valid();
+ }
+ 
+@@ -1242,9 +1211,9 @@ bool PipelineCache::GetCurrentStateDescription(
+   // Translated shaders needed at least for the root signature, unless in
+   // placeholder mode (async compilation) where both VS and PS translation
+   // may be deferred to background threads.
+-  assert_true(for_placeholder || (vertex_shader->is_translated() && vertex_shader->is_valid()));
++  assert_true(for_placeholder || (vertex_shader->is_prepared() && vertex_shader->is_valid()));
+   assert_true(for_placeholder || !pixel_shader ||
+-              (pixel_shader->is_translated() && pixel_shader->is_valid()));
++              (pixel_shader->is_prepared() && pixel_shader->is_valid()));
+ 
+   PipelineDescription& description_out = runtime_description_out.description;
+ 
+@@ -1275,14 +1244,14 @@ bool PipelineCache::GetCurrentStateDescription(
+   bool edram_rov_used =
+       render_target_cache_.GetPath() == RenderTargetCache::Path::kPixelShaderInterlock;
+ 
+-  // Root signature.
+-  runtime_description_out.root_signature = command_processor_.GetRootSignature(
+-      static_cast<const DxbcShader*>(&vertex_shader->shader()),
+-      (pixel_shader && !for_placeholder) ? static_cast<const DxbcShader*>(&pixel_shader->shader())
+-                                         : nullptr,
+-      tessellated);
+-  if (runtime_description_out.root_signature == nullptr) {
+-    return false;
++  // Placeholder draws are skipped until their complete PSO is published.
++  // Reading partially translated binding vectors here races with the worker.
++  if (!for_placeholder) {
++    runtime_description_out.root_signature = command_processor_.GetRootSignature(
++        static_cast<const DxbcShader*>(&vertex_shader->shader()),
++        pixel_shader ? static_cast<const DxbcShader*>(&pixel_shader->shader()) : nullptr,
++        tessellated);
++    if (!runtime_description_out.root_signature) return false;
+   }
+ 
+   // Vertex shader.
+@@ -2711,7 +2680,7 @@ ID3D12PipelineState* PipelineCache::CreateD3D12Pipeline(
+   }
+ 
+   // Primitive topology, vertex, hull, domain and geometry shaders.
+-  if (!runtime_description.vertex_shader->is_translated()) {
++  if (!runtime_description.vertex_shader->is_prepared()) {
+     REXGPU_ERROR("Vertex shader {:016X} not translated",
+                  runtime_description.vertex_shader->shader().ucode_data_hash());
+     assert_always();
+@@ -2827,7 +2796,7 @@ ID3D12PipelineState* PipelineCache::CreateD3D12Pipeline(
+ 
+   // Pixel shader.
+   if (runtime_description.pixel_shader != nullptr) {
+-    if (!runtime_description.pixel_shader->is_translated()) {
++    if (!runtime_description.pixel_shader->is_prepared()) {
+       REXGPU_ERROR("Pixel shader {:016X} not translated",
+                    runtime_description.pixel_shader->shader().ucode_data_hash());
+       assert_always();
+@@ -3141,10 +3110,9 @@ bool PipelineCache::PrepareRuntimeDescriptionForQueuedCreation(
+     if (!translation) {
+       return true;
+     }
+-    if (!translation->is_translated()) {
++    if (!translation->is_prepared()) {
+       std::lock_guard<std::mutex> lock(translation_request_lock_);
+-      if (!translation->is_translated()) {
+-        translation->shader().AnalyzeUcode(ucode_disasm_buffer_);
++      if (!translation->is_prepared()) {
+         if (!TranslateAnalyzedShader(*shader_translator_, *translation, dxbc_converter_, dxc_utils_,
+                                      dxc_compiler_)) {
+           REXGPU_ERROR("Failed to translate queued {} shader", shader_type);
+@@ -3205,7 +3173,7 @@ void PipelineCache::CreationThread(size_t thread_index) {
+     {
+       std::unique_lock<std::mutex> lock(creation_request_lock_);
+       if (thread_index >= creation_threads_shutdown_from_ || creation_queue_.empty()) {
+-        if (creation_completion_set_event_ && creation_threads_busy_ == 0) {
++        if (creation_completion_set_event_ && creation_queue_.empty() && creation_threads_busy_ == 0) {
+           // Last pipeline in the queue created - signal the event if requested.
+           creation_completion_set_event_ = false;
+           creation_completion_event_->Set();
+@@ -3238,31 +3206,51 @@ void PipelineCache::CreationThread(size_t thread_index) {
+     // thread).
+     {
+       std::lock_guard<std::mutex> lock(creation_request_lock_);
++      pipeline_to_create->creation_complete.store(true, std::memory_order_release);
+       --creation_threads_busy_;
+     }
++    creation_finished_cond_.notify_all();
+   }
+ }
+ 
+-void PipelineCache::CreateQueuedPipelinesOnProcessorThread() {
+-  assert_false(creation_threads_.empty());
+-  while (true) {
+-    Pipeline* pipeline_to_create;
+-    {
+-      std::lock_guard<std::mutex> lock(creation_request_lock_);
+-      if (creation_queue_.empty()) {
+-        break;
+-      }
+-      pipeline_to_create = creation_queue_.top();
+-      creation_queue_.pop();
+-    }
+-    PipelineRuntimeDescription runtime_description;
+-    if (!PrepareRuntimeDescriptionForQueuedCreation(pipeline_to_create, runtime_description)) {
+-      pipeline_to_create->state.store(nullptr, std::memory_order_release);
+-      continue;
+-    }
+-    pipeline_to_create->state.store(CreateD3D12Pipeline(runtime_description),
+-                                    std::memory_order_release);
++bool PipelineCache::AwaitPipelineReady(void* handle) {
++  const auto wait_start = rex::chrono::Clock::QueryHostTickCount();
++  auto* pipeline = static_cast<Pipeline*>(handle);
++  std::unique_lock<std::mutex> lock(creation_request_lock_);
++  creation_finished_cond_.wait(lock, [pipeline]() {
++    return pipeline->creation_complete.load(std::memory_order_acquire);
++  });
++  lock.unlock();
++  const auto wait_end = rex::chrono::Clock::QueryHostTickCount();
++  const auto wait_ms = (wait_end - wait_start) * 1000 /
++                      rex::chrono::Clock::QueryHostTickFrequency();
++  if (wait_ms >= 8 && preparation_trace_count_ < 4096) {
++    ++preparation_trace_count_;
++    const auto& description = pipeline->description.description;
++    preparation_trace_ << "submit_wait at_ms="
++                       << (wait_start - preparation_start_ticks_) * 1000 /
++                              rex::chrono::Clock::QueryHostTickFrequency()
++                       << " wait_ms=" << wait_ms << " vs=" << std::hex
++                       << description.vertex_shader_hash << " ps="
++                       << description.pixel_shader_hash << " vs_mod="
++                       << description.vertex_shader_modification << " ps_mod="
++                       << description.pixel_shader_modification << std::dec
++                       << " success=" << (pipeline->state.load(std::memory_order_acquire) != nullptr)
++                       << std::endl;
++  }
++  return pipeline->state.load(std::memory_order_acquire) != nullptr;
++}
++
++void PipelineCache::AwaitPipelineCreation() {
++  if (creation_threads_.empty()) return;
++  {
++    std::unique_lock<std::mutex> lock(creation_request_lock_);
++    if (creation_queue_.empty() && creation_threads_busy_ == 0) return;
++    creation_completion_event_->Reset();
++    creation_completion_set_event_ = true;
+   }
++  creation_request_cond_.notify_all();
++  rex::thread::Wait(creation_completion_event_.get(), false);
+ }
+ 
+ }  // namespace rex::graphics::d3d12
+diff --git a/src/kernel/xam/xam_content.cpp b/src/kernel/xam/xam_content.cpp
+index 86c4353..dd873b5 100644
+--- a/src/kernel/xam/xam_content.cpp
++++ b/src/kernel/xam/xam_content.cpp
+@@ -18,6 +18,7 @@
+ #include <rex/string.h>
+ #include <rex/system/kernel_state.h>
+ #include <rex/system/xam/content_device.h>
++#include <rex/system/xam/virtual_coop.h>
+ #include <rex/system/xenumerator.h>
+ #include <rex/system/xtypes.h>
+ 
+@@ -29,6 +30,11 @@ namespace xam {
+ using namespace rex::system;
+ using namespace rex::system::xam;
+ 
++uint64_t ContentUserXuid(uint32_t user_index) {
++  return IsVirtualCoopGuest(user_index) ? kVirtualCoopXuid
++                                     : REX_KERNEL_STATE()->user_profile()->xuid();
++}
++
+ u32 XamContentGetLicenseMask_entry(mapped_u32 mask_ptr, mapped_void overlapped_ptr) {
+   // Each bit in the mask represents a granted license. Available licenses
+   // seems to vary from game to game, but most appear to use bit 0 to indicate
+@@ -75,7 +81,7 @@ u32 XamContentCreateEnumerator_entry(u32 user_index, u32 device_id, u32 content_
+     *buffer_size_ptr = sizeof(XCONTENT_DATA) * items_per_enumerate;
+   }
+ 
+-  uint64_t xuid = REX_KERNEL_STATE()->user_profile()->xuid();
++  uint64_t xuid = ContentUserXuid(user_index);
+ 
+   auto e = make_object<XStaticEnumerator<XCONTENT_DATA>>(REX_KERNEL_STATE(), items_per_enumerate);
+   auto result = e->Initialize(0xFF, 0xFE, 0x20005, 0x20007, 0);
+@@ -119,7 +125,7 @@ u32 xeXamContentCreate(u32 user_index, mapped_string root_name, mapped_void cont
+                        u32 content_data_size, u32 flags, mapped_u32 disposition_ptr,
+                        mapped_u32 license_mask_ptr, u32 cache_size, u64 content_size,
+                        mapped_void overlapped_ptr) {
+-  uint64_t xuid = REX_KERNEL_STATE()->user_profile()->xuid();
++  uint64_t xuid = ContentUserXuid(user_index);
+ 
+   XCONTENT_AGGREGATE_DATA content_data;
+   if (content_data_size == sizeof(XCONTENT_DATA)) {
+@@ -290,7 +296,7 @@ u32 XamContentGetCreator_entry(u32 user_index, mapped_void content_data_ptr,
+                                mapped_void overlapped_ptr) {
+   auto result = X_ERROR_SUCCESS;
+ 
+-  uint64_t xuid = REX_KERNEL_STATE()->user_profile()->xuid();
++  uint64_t xuid = ContentUserXuid(user_index);
+   XCONTENT_AGGREGATE_DATA content_data = *content_data_ptr.as<XCONTENT_DATA*>();
+ 
+   bool content_exists = REX_KERNEL_STATE()->content_manager()->ContentExists(xuid, content_data);
+@@ -325,7 +331,7 @@ u32 XamContentGetThumbnail_entry(u32 user_index, mapped_void content_data_ptr,
+                                  mapped_void overlapped_ptr) {
+   assert_not_null(buffer_size_ptr);
+   uint32_t buffer_size = *buffer_size_ptr;
+-  uint64_t xuid = REX_KERNEL_STATE()->user_profile()->xuid();
++  uint64_t xuid = ContentUserXuid(user_index);
+   XCONTENT_AGGREGATE_DATA content_data = *content_data_ptr.as<XCONTENT_DATA*>();
+ 
+   // Get thumbnail (if it exists).
+@@ -360,7 +366,7 @@ u32 XamContentGetThumbnail_entry(u32 user_index, mapped_void content_data_ptr,
+ u32 XamContentSetThumbnail_entry(u32 user_index, mapped_void content_data_ptr,
+                                  mapped_void buffer_ptr, u32 buffer_size,
+                                  mapped_void overlapped_ptr) {
+-  uint64_t xuid = REX_KERNEL_STATE()->user_profile()->xuid();
++  uint64_t xuid = ContentUserXuid(user_index);
+   XCONTENT_AGGREGATE_DATA content_data = *content_data_ptr.as<XCONTENT_DATA*>();
+ 
+   // Buffer is PNG data.
+@@ -378,7 +384,7 @@ u32 XamContentSetThumbnail_entry(u32 user_index, mapped_void content_data_ptr,
+ 
+ u32 XamContentDelete_entry(u32 user_index, mapped_void content_data_ptr,
+                            mapped_void overlapped_ptr) {
+-  uint64_t xuid = REX_KERNEL_STATE()->user_profile()->xuid();
++  uint64_t xuid = ContentUserXuid(user_index);
+   XCONTENT_AGGREGATE_DATA content_data = *content_data_ptr.as<XCONTENT_DATA*>();
+ 
+   auto result = REX_KERNEL_STATE()->content_manager()->DeleteContent(xuid, content_data);
+diff --git a/src/kernel/xam/xam_input.cpp b/src/kernel/xam/xam_input.cpp
+index 80c3634..3bcdb43 100644
+--- a/src/kernel/xam/xam_input.cpp
++++ b/src/kernel/xam/xam_input.cpp
+@@ -18,6 +18,36 @@
+ #include <rex/runtime.h>
+ #include <rex/system/kernel_state.h>
+ #include <rex/system/xtypes.h>
++#include <rex/system/xam/virtual_coop.h>
++#include <rex/system/xam/virtual_coop_input.h>
++#include <chrono>
++#include <cstring>
++
++namespace rex::system::xam {
++namespace {
++VirtualCoopInput virtual_input;
++uint64_t InputTimeMs() {
++  return std::chrono::duration_cast<std::chrono::milliseconds>(
++      std::chrono::steady_clock::now().time_since_epoch()).count();
++}
++}
++void SubmitVirtualCoopInput(VirtualCoopCommand command) {
++  if (IsVirtualCoopGuest(1)) virtual_input.Submit(command, InputTimeMs());
++  else virtual_input.Reset();
++}
++void ResetVirtualCoopInput() { virtual_input.Reset(); }
++void SetVirtualCoopGuest(bool enabled) {
++  if (REXCVAR_GET(virtual_coop_guest) == enabled) return;
++  virtual_input.Reset();
++  REXCVAR_SET(virtual_coop_guest, enabled);
++  if (auto* kernel = REX_KERNEL_STATE()) {
++    // Match physical hot-plug discovery and signal only the guest's sign-in
++    // bit. Merely returning a state does not wake cached controller scans.
++    kernel->BroadcastNotification(0x00000012, 0);
++    kernel->BroadcastNotification(0x0000000A, 1u << 1);
++  }
++}
++}
+ 
+ #pragma GCC diagnostic ignored "-Wunused-parameter"
+ 
+@@ -66,6 +96,11 @@ u32 XamInputGetCapabilities_entry(u32 user_index, u32 flags, ppc_ptr_t<X_INPUT_C
+   }
+ 
+   auto* is = input_system();
++  if (rex::system::xam::IsVirtualCoopGuest(actual_user_index)) {
++    std::memset(caps, 0, sizeof(X_INPUT_CAPABILITIES));
++    caps->type = 1; caps->sub_type = 1;
++    return X_ERROR_SUCCESS;
++  }
+   return is->GetCapabilities(actual_user_index, flags, caps);
+ }
+ 
+@@ -88,6 +123,11 @@ u32 XamInputGetCapabilitiesEx_entry(u32 unk, u32 user_index, u32 flags,
+ 
+   (void)unk;  // Unused in this implementation
+   auto* is = input_system();
++  if (rex::system::xam::IsVirtualCoopGuest(actual_user_index)) {
++    std::memset(caps, 0, sizeof(X_INPUT_CAPABILITIES));
++    caps->type = 1; caps->sub_type = 1;
++    return X_ERROR_SUCCESS;
++  }
+   return is->GetCapabilities(actual_user_index, flags, caps);
+ }
+ 
+@@ -112,6 +152,21 @@ u32 XamInputGetState_entry(u32 user_index, u32 flags, ppc_ptr_t<X_INPUT_STATE> i
+   }
+ 
+   auto* is = input_system();
++  if (rex::system::xam::IsVirtualCoopGuest(actual_user_index)) {
++    // Native controller discovery may query connectivity without requesting
++    // a state buffer, just as the physical input path permits.
++    if (!input_state) return X_ERROR_SUCCESS;
++    const auto state = rex::system::xam::virtual_input.Read(rex::system::xam::InputTimeMs());
++    input_state->packet_number = state.packet;
++    input_state->gamepad.buttons = state.command.buttons;
++    input_state->gamepad.left_trigger = state.command.left_trigger;
++    input_state->gamepad.right_trigger = state.command.right_trigger;
++    input_state->gamepad.thumb_lx = state.command.left_x;
++    input_state->gamepad.thumb_ly = state.command.left_y;
++    input_state->gamepad.thumb_rx = state.command.right_x;
++    input_state->gamepad.thumb_ry = state.command.right_y;
++    return X_ERROR_SUCCESS;
++  }
+   return is->GetState(actual_user_index, input_state);
+ }
+ 
+@@ -120,6 +175,7 @@ u32 XamInputSetState_entry(u32 user_index, u32 unk, ppc_ptr_t<X_INPUT_VIBRATION>
+   if (!vibration) {
+     return X_ERROR_BAD_ARGUMENTS;
+   }
++  if (rex::system::xam::IsVirtualCoopGuest(user_index)) return X_ERROR_SUCCESS;
+ 
+   uint32_t actual_user_index = user_index;
+   if ((user_index & 0xFF) == 0xFF) {
+@@ -141,6 +197,7 @@ u32 XamInputGetKeystroke_entry(u32 user_index, u32 flags, ppc_ptr_t<X_INPUT_KEYS
+   if (!keystroke) {
+     return X_ERROR_BAD_ARGUMENTS;
+   }
++  if (rex::system::xam::IsVirtualCoopGuest(user_index)) return X_ERROR_EMPTY;
+ 
+   if ((flags & 0xFF) && (flags & XINPUT_FLAG_GAMEPAD) == 0) {
+     // Ignore any query for other types of devices.
+@@ -160,6 +217,7 @@ u32 XamInputGetKeystroke_entry(u32 user_index, u32 flags, ppc_ptr_t<X_INPUT_KEYS
+ // Same as non-ex, just takes a pointer to user index.
+ u32 XamInputGetKeystrokeEx_entry(mapped_u32 user_index_ptr, u32 flags,
+                                  ppc_ptr_t<X_INPUT_KEYSTROKE> keystroke) {
++  if (!user_index_ptr) return X_ERROR_BAD_ARGUMENTS;
+   if (!keystroke) {
+     return X_ERROR_BAD_ARGUMENTS;
+   }
+@@ -170,6 +228,7 @@ u32 XamInputGetKeystrokeEx_entry(mapped_u32 user_index_ptr, u32 flags,
+   }
+ 
+   uint32_t user_index = *user_index_ptr;
++  if (rex::system::xam::IsVirtualCoopGuest(user_index)) return X_ERROR_EMPTY;
+   if ((user_index & 0xFF) == 0xFF || (flags & XINPUT_FLAG_ANY_USER)) {
+     // Always pin user to 0.
+     user_index = 0;
+@@ -188,7 +247,7 @@ i32 XamUserGetDeviceContext_entry(u32 user_index, u32 unk, mapped_u32 out_ptr) {
+   // If this function fails they assume zero, so let's fail AND
+   // set zero just to be safe.
+   *out_ptr = 0;
+-  if (!user_index || (user_index & 0xFF) == 0xFF) {
++  if (!user_index || (user_index & 0xFF) == 0xFF || rex::system::xam::IsVirtualCoopGuest(user_index)) {
+     return X_E_SUCCESS;
+   } else {
+     return X_E_DEVICE_NOT_CONNECTED;
+diff --git a/src/kernel/xam/xam_user.cpp b/src/kernel/xam/xam_user.cpp
+index 8778066..3eaeee7 100644
+--- a/src/kernel/xam/xam_user.cpp
++++ b/src/kernel/xam/xam_user.cpp
+@@ -23,12 +23,14 @@
+ #include <rex/string.h>
+ #include <rex/system/kernel_state.h>
+ #include <rex/system/xam/user_profile.h>
++#include <rex/system/xam/virtual_coop.h>
+ #include <rex/system/xenumerator.h>
+ #include <rex/system/xio.h>
+ #include <rex/system/xthread.h>
+ #include <rex/system/xtypes.h>
+ 
+ REXCVAR_DEFINE_UINT32(user_language, 1, "Kernel", "User's language ID");
++REXCVAR_DEFINE_BOOL(virtual_coop_guest, false, "Kernel", "Experimental virtual local co-op guest");
+ 
+ namespace rex {
+ namespace kernel {
+@@ -36,6 +38,16 @@ namespace xam {
+ using namespace rex::system;
+ using namespace rex::system::xam;
+ 
++UserProfile* CoopUserProfile(uint32_t index) {
++  if (IsVirtualCoopGuest(index)) {
++    // The guest has its own settings and never loads/saves Player 1's files.
++    static UserProfile guest(kVirtualCoopXuid, "Coop Ally", false);
++    guest.set_kernel_state(REX_KERNEL_STATE());
++    return &guest;
++  }
++  return REX_KERNEL_STATE()->user_profile();
++}
++
+ i32 XamUserGetXUID_entry(u32 user_index, u32 type_mask, mapped_u64 xuid_ptr) {
+   assert_true(type_mask == 1 || type_mask == 2 || type_mask == 3 || type_mask == 4 ||
+               type_mask == 7);
+@@ -45,8 +57,8 @@ i32 XamUserGetXUID_entry(u32 user_index, u32 type_mask, mapped_u64 xuid_ptr) {
+   uint32_t result = X_E_NO_SUCH_USER;
+   uint64_t xuid = 0;
+   if (user_index < 4) {
+-    if (user_index == 0) {
+-      const auto& user_profile = REX_KERNEL_STATE()->user_profile();
++    if (user_index == 0 || IsVirtualCoopGuest(user_index)) {
++      const auto* user_profile = CoopUserProfile(user_index);
+       auto type = user_profile->type() & type_mask;
+       if (type & (2 | 4)) {
+         // maybe online profile?
+@@ -68,8 +80,8 @@ i32 XamUserGetXUID_entry(u32 user_index, u32 type_mask, mapped_u64 xuid_ptr) {
+ u32 XamUserGetSigninState_entry(u32 user_index) {
+   uint32_t signin_state = 0;
+   if (user_index < 4) {
+-    if (user_index == 0) {
+-      const auto& user_profile = REX_KERNEL_STATE()->user_profile();
++    if (user_index == 0 || IsVirtualCoopGuest(user_index)) {
++      const auto* user_profile = CoopUserProfile(user_index);
+       signin_state = user_profile->signin_state();
+     }
+   }
+@@ -92,11 +104,11 @@ i32 XamUserGetSigninInfo_entry(u32 user_index, u32 flags, ppc_ptr_t<X_USER_SIGNI
+   }
+ 
+   std::memset(info, 0, sizeof(X_USER_SIGNIN_INFO));
+-  if (user_index) {
++  if (user_index && !IsVirtualCoopGuest(user_index)) {
+     return X_E_NO_SUCH_USER;
+   }
+ 
+-  const auto& user_profile = REX_KERNEL_STATE()->user_profile();
++  const auto* user_profile = CoopUserProfile(user_index);
+   info->xuid = user_profile->xuid();
+   info->signin_state = user_profile->signin_state();
+   rex::string::copy_truncating(info->name, user_profile->name(), rex::countof(info->name));
+@@ -108,11 +120,11 @@ u32 XamUserGetName_entry(u32 user_index, mapped_string buffer, u32 buffer_len) {
+     return X_E_INVALIDARG;
+   }
+ 
+-  if (user_index) {
++  if (user_index && !IsVirtualCoopGuest(user_index)) {
+     return X_E_NO_SUCH_USER;
+   }
+ 
+-  const auto& user_profile = REX_KERNEL_STATE()->user_profile();
++  const auto* user_profile = CoopUserProfile(user_index);
+   const auto& user_name = user_profile->name();
+   rex::string::copy_truncating(buffer, user_name, std::min(buffer_len, uint32_t(16)));
+   return X_E_SUCCESS;
+@@ -123,7 +135,7 @@ u32 XamUserGetGamerTag_entry(u32 user_index, mapped_wstring buffer, u32 buffer_l
+     return X_E_INVALIDARG;
+   }
+ 
+-  if (user_index) {
++  if (user_index && !IsVirtualCoopGuest(user_index)) {
+     return X_E_NO_SUCH_USER;
+   }
+ 
+@@ -131,7 +143,7 @@ u32 XamUserGetGamerTag_entry(u32 user_index, mapped_wstring buffer, u32 buffer_l
+     return X_E_INVALIDARG;
+   }
+ 
+-  const auto& user_profile = REX_KERNEL_STATE()->user_profile();
++  const auto* user_profile = CoopUserProfile(user_index);
+   auto user_name = rex::string::to_utf16(user_profile->name());
+   rex::string::copy_and_swap_truncating(buffer, user_name, std::min(buffer_len, uint32_t(16)));
+   return X_E_SUCCESS;
+@@ -154,9 +166,16 @@ uint32_t XamUserReadProfileSettingsEx(uint32_t title_id, uint32_t user_index, ui
+   } else {
+     assert_true(xuid_count == 1);
+     assert_not_null(xuids);
+-    // TODO(gibbed): allow proper lookup of arbitrary XUIDs
+-    const auto& user_profile = REX_KERNEL_STATE()->user_profile();
+-    assert_true(static_cast<uint64_t>(xuids[0]) == user_profile->xuid());
++    // XUID-based calls need not supply a local controller index. Resolve the
++    // identity before accessing settings; never fall back to Player 1's data.
++    const uint64_t requested_xuid = static_cast<uint64_t>(xuids[0]);
++    if (requested_xuid == CoopUserProfile(0)->xuid()) {
++      user_index = 0;
++    } else if (IsVirtualCoopGuest(1) && requested_xuid == CoopUserProfile(1)->xuid()) {
++      user_index = 1;
++    } else {
++      return X_ERROR_NO_SUCH_USER;
++    }
+     // TODO(gibbed): we assert here, but in case a title passes xuid_count > 1
+     // until it's implemented for release builds...
+     xuid_count = 1;
+@@ -211,7 +230,7 @@ uint32_t XamUserReadProfileSettingsEx(uint32_t title_id, uint32_t user_index, ui
+   // Title ID = 0 means us.
+   // 0xfffe07d1 = profile?
+ 
+-  if (!xuids && user_index) {
++  if (!xuids && user_index && !IsVirtualCoopGuest(user_index)) {
+     // Only support user 0.
+     if (overlapped) {
+       REX_KERNEL_STATE()->CompleteOverlappedImmediate(
+@@ -221,7 +240,7 @@ uint32_t XamUserReadProfileSettingsEx(uint32_t title_id, uint32_t user_index, ui
+     return X_ERROR_NO_SUCH_USER;
+   }
+ 
+-  const auto& user_profile = REX_KERNEL_STATE()->user_profile();
++  auto* user_profile = CoopUserProfile(user_index);
+ 
+   // First call asks for size (fill buffer_size_ptr).
+   // Second call asks for buffer contents with that size.
+@@ -308,8 +327,8 @@ u32 XamUserWriteProfileSettings_entry(u32 title_id, u32 user_index, u32 setting_
+     return X_ERROR_INVALID_PARAMETER;
+   }
+ 
+-  if (user_index) {
+-    // Only support user 0.
++  if (user_index && !IsVirtualCoopGuest(user_index)) {
++    // Only the primary user and explicitly enabled guest are supported.
+     if (overlapped) {
+       REX_KERNEL_STATE()->CompleteOverlappedImmediate(overlapped.guest_address(),
+                                                       X_ERROR_NO_SUCH_USER);
+@@ -319,7 +338,7 @@ u32 XamUserWriteProfileSettings_entry(u32 title_id, u32 user_index, u32 setting_
+   }
+ 
+   // Update and save settings.
+-  const auto& user_profile = REX_KERNEL_STATE()->user_profile();
++  auto* user_profile = CoopUserProfile(user_index);
+ 
+   for (uint32_t n = 0; n < setting_count; ++n) {
+     const X_USER_PROFILE_SETTING& setting = settings[n];
+@@ -377,7 +396,7 @@ u32 XamUserCheckPrivilege_entry(u32 user_index, u32 mask, mapped_u32 out_value)
+       return X_ERROR_INVALID_PARAMETER;
+     }
+ 
+-    if (user_index) {
++    if (user_index && !IsVirtualCoopGuest(user_index)) {
+       return X_ERROR_NO_SUCH_USER;
+     }
+   }
+@@ -388,7 +407,7 @@ u32 XamUserCheckPrivilege_entry(u32 user_index, u32 mask, mapped_u32 out_value)
+ }
+ 
+ u32 XamUserContentRestrictionGetFlags_entry(u32 user_index, mapped_u32 out_flags) {
+-  if (user_index) {
++  if (user_index && !IsVirtualCoopGuest(user_index)) {
+     return X_ERROR_NO_SUCH_USER;
+   }
+ 
+@@ -399,7 +418,7 @@ u32 XamUserContentRestrictionGetFlags_entry(u32 user_index, mapped_u32 out_flags
+ 
+ u32 XamUserContentRestrictionGetRating_entry(u32 user_index, u32 unk1, mapped_u32 out_unk2,
+                                              mapped_u32 out_unk3) {
+-  if (user_index) {
++  if (user_index && !IsVirtualCoopGuest(user_index)) {
+     return X_ERROR_NO_SUCH_USER;
+   }
+ 
+@@ -423,6 +442,7 @@ u32 XamUserContentRestrictionCheckAccess_entry(u32 user_index, u32 unk1, u32 unk
+ }
+ 
+ u32 XamUserIsOnlineEnabled_entry(u32 user_index) {
++  if (IsVirtualCoopGuest(user_index)) return 0;
+   return 1;
+ }
+ 
+diff --git a/src/system/xam/user_profile.cpp b/src/system/xam/user_profile.cpp
+index a77f5e6..264fed6 100644
+--- a/src/system/xam/user_profile.cpp
++++ b/src/system/xam/user_profile.cpp
+@@ -21,12 +21,11 @@ namespace rex {
+ namespace system {
+ namespace xam {
+ 
+-UserProfile::UserProfile() {
++UserProfile::UserProfile(uint64_t xuid, std::string name, bool persistent)
++    : xuid_(xuid), name_(std::move(name)), persistent_(persistent) {
+   // 58410A1F checks the user XUID against a mask of 0x00C0000000000000 (3<<54),
+   // if non-zero, it prevents the user from playing the game.
+   // "You do not have permissions to perform this operation."
+-  xuid_ = 0xB13EBABEBABEBABE;
+-  name_ = "User";
+ 
+   // https://cs.rin.ru/forum/viewtopic.php?f=38&t=60668&hilit=gfwl+live&start=195
+   // https://github.com/arkem/py360/blob/master/py360/constants.py
+@@ -132,6 +131,7 @@ UserProfile::Setting* UserProfile::GetSetting(uint32_t setting_id) {
+ }
+ 
+ void UserProfile::LoadSetting(UserProfile::Setting* setting) {
++  if (!persistent_) return;
+   if (setting->is_title_specific()) {
+     auto content_dir = kernel_state_->content_manager()->ResolveGameUserContentPath();
+     auto setting_id = fmt::format("{:08X}", setting->setting_id);
+@@ -156,6 +156,7 @@ void UserProfile::LoadSetting(UserProfile::Setting* setting) {
+ }
+ 
+ void UserProfile::SaveSetting(UserProfile::Setting* setting) {
++  if (!persistent_) return;
+   if (setting->is_title_specific()) {
+     auto serialized_setting = setting->Serialize();
+     auto content_dir = kernel_state_->content_manager()->ResolveGameUserContentPath();
+diff --git a/src/ui/d3d12/d3d12_presenter.cpp b/src/ui/d3d12/d3d12_presenter.cpp
+index 306118e..6007a68 100644
+--- a/src/ui/d3d12/d3d12_presenter.cpp
++++ b/src/ui/d3d12/d3d12_presenter.cpp
+@@ -1162,6 +1162,37 @@ Presenter::PaintResult D3D12Presenter::PaintAndPresentImpl(bool execute_ui_drawe
+   // internally before the failure according to Jesse Natalie from the DirectX
+   // Discord server.
+   paint_context_.present_submission_tracker.NextSubmission();
++  // Presentation may detect device loss before the guest command processor.
++  // Preserve its reason here rather than aborting with only a generic message.
++  if (present_result == DXGI_ERROR_DEVICE_REMOVED ||
++      present_result == DXGI_ERROR_DEVICE_RESET) {
++    REXLOG_ERROR("D3D12 presentation lost device: Present=0x{:08X}, reason=0x{:08X}",
++                 static_cast<unsigned>(present_result),
++                 static_cast<unsigned>(provider_.GetDevice()->GetDeviceRemovedReason()));
++    Microsoft::WRL::ComPtr<ID3D12DeviceRemovedExtendedData> dred;
++    if (SUCCEEDED(provider_.GetDevice()->QueryInterface(IID_PPV_ARGS(&dred)))) {
++      D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT breadcrumbs{};
++      if (SUCCEEDED(dred->GetAutoBreadcrumbsOutput(&breadcrumbs))) {
++        unsigned nodes = 0;
++        for (auto* node = breadcrumbs.pHeadAutoBreadcrumbNode;
++             node && nodes++ < 64; node = node->pNext) {
++          if (!node->pLastBreadcrumbValue || !node->pCommandHistory) continue;
++          const auto last = std::min(*node->pLastBreadcrumbValue, node->BreadcrumbCount);
++          REXLOG_ERROR("Presentation DRED: completed {} of {} ops", last, node->BreadcrumbCount);
++          for (auto i = last > 3 ? last - 3 : 0;
++               i < node->BreadcrumbCount && i <= last; ++i) {
++            REXLOG_ERROR("  op[{}]={}{}", i, static_cast<unsigned>(node->pCommandHistory[i]),
++                         i == last ? " pending" : "");
++          }
++        }
++      }
++      D3D12_DRED_PAGE_FAULT_OUTPUT fault{};
++      if (SUCCEEDED(dred->GetPageFaultAllocationOutput(&fault))) {
++        REXLOG_ERROR("Presentation DRED page fault VA: {:016X}", fault.PageFaultVA);
++      }
++    }
++    rex::FlushLogging();
++  }
+   switch (present_result) {
+     case DXGI_ERROR_DEVICE_REMOVED:
+       return PaintResult::kGpuLostExternally;
+diff --git a/src/ui/d3d12/d3d12_provider.cpp b/src/ui/d3d12/d3d12_provider.cpp
+index bf8252b..03ebc16 100644
+--- a/src/ui/d3d12/d3d12_provider.cpp
++++ b/src/ui/d3d12/d3d12_provider.cpp
+@@ -22,6 +22,8 @@
+ 
+ REXCVAR_DEFINE_BOOL(d3d12_debug, false, "UI/D3D12", "Enable Direct3D 12 and DXGI debug layer")
+     .lifecycle(rex::cvar::Lifecycle::kInitOnly);
++REXCVAR_DEFINE_BOOL(d3d12_dred, false, "UI/D3D12", "Collect GPU device-removal diagnostics without the debug layer")
++    .lifecycle(rex::cvar::Lifecycle::kInitOnly);
+ 
+ REXCVAR_DEFINE_BOOL(d3d12_break_on_error, false, "UI/D3D12",
+                     "Break on Direct3D 12 validation errors");
+@@ -228,7 +230,9 @@ bool D3D12Provider::Initialize() {
+       debug = false;
+     }
+ 
+-    // Enable DRED (Device Removed Extended Data) for diagnosing GPU crashes.
++  }
++  if (debug || REXCVAR_GET(d3d12_dred)) {
++    // DRED can be used without installing or enabling the debug layer.
+     {
+       Microsoft::WRL::ComPtr<ID3D12DeviceRemovedExtendedDataSettings> dred_settings;
+       if (SUCCEEDED(pfn_d3d12_get_debug_interface_(IID_PPV_ARGS(&dred_settings)))) {
+diff --git a/src/ui/presenter.cpp b/src/ui/presenter.cpp
+index 7360ed9..19e63c3 100644
+--- a/src/ui/presenter.cpp
++++ b/src/ui/presenter.cpp
+@@ -12,6 +12,7 @@
+ #include <algorithm>
+ #include <atomic>
+ #include <cctype>
++#include <chrono>
+ #include <utility>
+ 
+ #include <rex/assert.h>
+@@ -1583,6 +1584,9 @@ void Presenter::WaitForUITickFromUIThread() {
+   }
+   std::unique_lock<std::mutex> dxgi_ui_tick_lock(dxgi_ui_tick_mutex_);
+   uint64_t last_vblank_before_wait = dxgi_ui_tick_last_vblank_;
++  // Display transitions may stop vblank notifications. Never hold the UI
++  // message pump indefinitely waiting for a refresh from an inactive output.
++  const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(50);
+   while (true) {
+     // Guest output present requests should interrupt the wait as quickly as
+     // possible as they should be fulfilled as early as possible.
+@@ -1600,7 +1604,10 @@ void Presenter::WaitForUITickFromUIThread() {
+           std::min(last_vblank_before_wait + uint64_t(1), dxgi_ui_tick_last_vblank_);
+       return;
+     }
+-    dxgi_ui_tick_signal_condition_.wait(dxgi_ui_tick_lock);
++    if (dxgi_ui_tick_signal_condition_.wait_until(dxgi_ui_tick_lock, deadline) ==
++        std::cv_status::timeout) {
++      return;
++    }
+   }
+ #endif  // XE_PLATFORM
+ }
+@@ -1609,6 +1616,7 @@ void Presenter::ForceUIThreadPaintTick() {
+ #if REX_PLATFORM_WIN32
+   std::scoped_lock<std::mutex> dxgi_ui_tick_lock(dxgi_ui_tick_mutex_);
+   dxgi_ui_tick_force_requested_ = true;
++  dxgi_ui_tick_signal_condition_.notify_all();
+ #endif  // XE_PLATFORM
+ }
+ 
+@@ -1648,7 +1656,7 @@ void Presenter::DXGIUITickThread() {
+     {
+       Microsoft::WRL::ComPtr<IDXGIOutput> dxgi_output = dxgi_ui_tick_output_;
+       dxgi_ui_tick_lock.unlock();
+-      wait_succeeded = SUCCEEDED(dxgi_ui_tick_output_->WaitForVBlank());
++      wait_succeeded = SUCCEEDED(dxgi_output->WaitForVBlank());
+     }
+     dxgi_ui_tick_lock.lock();
+     if (wait_succeeded) {
+diff --git a/src/ui/rex_app.cpp b/src/ui/rex_app.cpp
+index 9ff54e8..048330e 100644
+--- a/src/ui/rex_app.cpp
++++ b/src/ui/rex_app.cpp
+@@ -55,6 +55,28 @@ REXCVAR_DEFINE_STRING(gpu_plugin, "", "GPU",
+ 
+ namespace rex {
+ 
++namespace {
++class ShaderWarmupDialog final : public ui::ImGuiDialog {
++ public:
++  ShaderWarmupDialog(ui::ImGuiDrawer* drawer, const std::atomic<bool>& active)
++      : ImGuiDialog(drawer), active_(active) {}
++ private:
++  void OnDraw(ImGuiIO& io) override {
++    if (!active_.load(std::memory_order_acquire)) return;
++    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * .5f, io.DisplaySize.y * .5f),
++                            ImGuiCond_Always, ImVec2(.5f, .5f));
++    if (ImGui::Begin("Preparing graphics", nullptr,
++                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
++                     ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs)) {
++      ImGui::TextUnformatted("Preparing cached shaders...");
++      ImGui::TextUnformatted("The game will start when they are ready.");
++    }
++    ImGui::End();
++  }
++  const std::atomic<bool>& active_;
++};
++}  // namespace
++
+ // --- ReXApp ---
+ 
+ ReXApp::~ReXApp() = default;
+@@ -452,6 +474,8 @@ void ReXApp::SetupOverlays(rex::ui::Presenter* presenter, rex::ui::ImmediateDraw
+   });
+ 
+   OnCreateDialogs(imgui_drawer_.get());
++  shader_warmup_dialog_ = std::make_unique<ShaderWarmupDialog>(
++      imgui_drawer_.get(), shader_warmup_active_);
+ }
+ 
+ void ReXApp::LaunchModule() {
+@@ -483,19 +507,25 @@ void ReXApp::LaunchModule() {
+       return;
+     }
+ 
+-    auto* graphics_system = runtime_->graphics_system();
+-    if (graphics_system && !runtime_->cache_root().empty()) {
+-      uint32_t title_id = runtime_->kernel_state()->title_id();
+-      if (title_id != 0) {
+-        REXLOG_INFO("Initializing shader storage for title {:08X}...", title_id);
+-        graphics_system->InitializeShaderStorage(runtime_->cache_root(), title_id, true);
+-      }
+-    }
+-
+-    OnPostLaunchModule(main_thread.get());
+-    main_thread->Resume();
+-
++    // Keep Windows messages and the loading overlay responsive while the
++    // bounded GPU pool prepares every known scene, including later cutscenes.
++    // The guest stays suspended until the cache completion barrier finishes.
++    shader_warmup_active_.store(true, std::memory_order_release);
+     module_thread_ = std::thread([this, main_thread = std::move(main_thread)]() mutable {
++      auto* graphics_system = runtime_->graphics_system();
++      if (graphics_system && !runtime_->cache_root().empty()) {
++        const uint32_t title_id = runtime_->kernel_state()->title_id();
++        if (title_id != 0) {
++          REXLOG_INFO("Preparing known shaders before launch for title {:08X}...", title_id);
++          graphics_system->InitializeShaderStorage(runtime_->cache_root(), title_id, true);
++        }
++      }
++      if (shutting_down_.load(std::memory_order_acquire)) return;
++      app_context().CallInUIThread([this, &main_thread]() {
++        shader_warmup_active_.store(false, std::memory_order_release);
++        OnPostLaunchModule(main_thread.get());
++        main_thread->Resume();
++      });
+       main_thread->Wait(0, 0, 0, nullptr);
+       OnGuestThreadExit(main_thread.get());
+       REXLOG_INFO("Execution complete");
+@@ -598,6 +628,7 @@ void ReXApp::OnDestroy() {
+     achievement_notification_listener_ = 0;
+   }
+   achievement_notification_.reset();
++  shader_warmup_dialog_.reset();
+   achievements_overlay_.reset();
+   settings_overlay_.reset();
+   console_overlay_.reset();
+diff --git a/src/ui/window_sdl.cpp b/src/ui/window_sdl.cpp
+index 6782cce..2b6b8d4 100644
+--- a/src/ui/window_sdl.cpp
++++ b/src/ui/window_sdl.cpp
+@@ -485,6 +485,13 @@ void WindowSDL::RequestPaintImpl() {
+ 
+ void WindowSDL::HandlePaintEvent() {
+   paint_pending_.store(false, std::memory_order_release);
++#if REX_PLATFORM_WIN32
++  // Do not enter a blocking GPU present/vblank path on the Windows message
++  // thread while another app owns focus. Keep pumping events, and explicitly
++  // repaint on focus restoration below, even if a presenter request is latched.
++  const auto flags = SDL_GetWindowFlags(sdl_window_);
++  if (!(flags & SDL_WINDOW_INPUT_FOCUS) || (flags & SDL_WINDOW_MINIMIZED)) return;
++#endif
+   OnPaint();
+ }
+ 
+@@ -524,12 +531,18 @@ void WindowSDL::HandleWindowEvent(SDL_Event& event) {
+     }
+     case SDL_EVENT_WINDOW_FOCUS_GAINED:
+       OnFocusUpdate(true, destruction_receiver);
++#if REX_PLATFORM_WIN32
++      if (!destruction_receiver.IsWindowDestroyed()) OnPaint(true);
++#endif
+       break;
+     case SDL_EVENT_WINDOW_FOCUS_LOST:
+       OnFocusUpdate(false, destruction_receiver);
+       break;
+     case SDL_EVENT_WINDOW_EXPOSED:
+       // The platform cannot retain the previous image; force the paint.
++#if REX_PLATFORM_WIN32
++      if (!(SDL_GetWindowFlags(sdl_window_) & SDL_WINDOW_INPUT_FOCUS)) break;
++#endif
+       OnPaint(true);
+       break;
+     case SDL_EVENT_WINDOW_MINIMIZED:

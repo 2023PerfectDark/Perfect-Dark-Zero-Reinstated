@@ -12,7 +12,7 @@ if(NOT WIN32)
     return()
 endif()
 
-set(MSPACK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/rexglue-sdk/thirdparty/libmspack")
+set(MSPACK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../sdk/thirdparty/libmspack")
 set(MSPACK_SRC "${MSPACK_DIR}/libmspack/mspack")
 set(MSPACK_DST "${MSPACK_DIR}/cabextract/mspack")
 

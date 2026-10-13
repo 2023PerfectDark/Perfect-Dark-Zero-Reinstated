@@ -1,8 +1,9 @@
 #include "generated/default/perfectdarkzerorecomp_init.h"
 
 #include <array>
-#include <atomic>
-#include <chrono>
+#include <bit>
+#include <cmath>
+#include <mutex>
 #include <cstdint>
 #include <cstring>
 
@@ -17,6 +18,44 @@
 #include "game_cvars.h"
 #include "game_constants.h"
 #include "game_patches.h"
+#include "mousehook.h"
+#include "campaign_menu.h"
+
+REX_EXTERN(__imp__sub_823975C0);
+REX_HOOK_RAW(sub_823975C0)
+{
+  // Only front-end intro/attract requests. Keep native initialization,
+  // null-movie completion and title transitions; mission movies are untouched.
+  const bool startup = (ctx.lr == 0x826173CC && ctx.r3.u32 == 0x820CD6D4) ||
+                       (ctx.lr == 0x822262B4 &&
+                        (ctx.r3.u32 == 0x82098800 || ctx.r3.u32 == 0x8209881C));
+  if (REXCVAR_GET(pdz_skip_intro) && startup &&
+      REX_LOAD_U32(0x82E2E794) == 0)
+  {
+    REXLOG_INFO("Skip intro: bypassing startup movie {:08X}", ctx.r3.u32);
+    ctx.r3.u64 = 0;
+    return;
+  }
+  __imp__sub_823975C0(ctx, base);
+}
+
+REX_EXTERN(__imp__sub_823C6360);
+REX_HOOK_RAW(sub_823C6360)
+{
+  // DarkXuiStartAttract's timer starts the demonstration after the title
+  // screen is idle. Keep PRESS START waiting for real input when intro
+  // skipping is enabled; preserve all other scene/input messages.
+  const uint32_t message = ctx.r4.u32;
+  if (REXCVAR_GET(pdz_skip_intro) && message &&
+      REX_LOAD_U32(message + 4) == 39) {
+    const uint32_t timer = REX_LOAD_U32(message + 16);
+    if (timer && REX_LOAD_U32(timer) == 1235) {
+      ctx.r3.u64 = 0;
+      return;
+    }
+  }
+  __imp__sub_823C6360(ctx, base);
+}
 
 namespace game_patches
 {
@@ -132,67 +171,103 @@ REX_HOOK_RAW(sub_82394750)
 
 REX_EXTERN(__imp__sub_82AC4CB8);
 
-REX_HOOK_RAW(sub_82AC4CB8)
+REX_EXTERN(__imp__sub_824E84B8);
+REX_HOOK_RAW(sub_824E84B8)
 {
-  const uint32_t state_address = ctx.r4.u32;
-  __imp__sub_82AC4CB8(ctx, base);
-
-  if (!base || !state_address || ctx.r3.u32 != 0)
-  {
+  // The original add routine dereferences a null free-list entry if the
+  // 13-object pool is exhausted. The size cheat must never bypass this bound.
+  if (pdz_input::InventoryStorageFull(ctx.r3.u32)) {
+    ctx.r3.u64 = 0;
     return;
   }
-
-  uint8_t *state = base + state_address;
-  const auto read_be_i16 = [](const uint8_t *bytes)
-  {
-    const uint16_t value = (uint16_t(bytes[0]) << 8) | bytes[1];
-    return static_cast<int16_t>(value);
-  };
-  const auto write_be_i16 = [](uint8_t *bytes, int16_t value)
-  {
-    const auto unsigned_value = static_cast<uint16_t>(value);
-    bytes[0] = static_cast<uint8_t>(unsigned_value >> 8);
-    bytes[1] = static_cast<uint8_t>(unsigned_value);
-  };
-
-  int16_t right_x = read_be_i16(state + 12);
-  int16_t right_y = read_be_i16(state + 14);
-
-  // The MNK driver drains its accumulated mouse delta on every poll
-  // Hold the last nonzero sample and let it decay over a short window instead.
-  static std::atomic<int64_t> last_nonzero_time_ms{0};
-  static std::atomic<int16_t> held_x{0};
-  static std::atomic<int16_t> held_y{0};
-  constexpr int64_t kHoldWindowMs = 80;
-
-  const int64_t now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                             std::chrono::steady_clock::now().time_since_epoch())
-                             .count();
-
-  if (right_x != 0 || right_y != 0)
-  {
-    held_x.store(right_x, std::memory_order_relaxed);
-    held_y.store(right_y, std::memory_order_relaxed);
-    last_nonzero_time_ms.store(now_ms, std::memory_order_relaxed);
-  }
-  else
-  {
-    const int64_t elapsed = now_ms - last_nonzero_time_ms.load(std::memory_order_relaxed);
-    if (elapsed >= 0 && elapsed < kHoldWindowMs)
-    {
-      const double decay = 1.0 - static_cast<double>(elapsed) / static_cast<double>(kHoldWindowMs);
-      right_x = static_cast<int16_t>(held_x.load(std::memory_order_relaxed) * decay);
-      right_y = static_cast<int16_t>(held_y.load(std::memory_order_relaxed) * decay);
-      write_be_i16(state + 12, right_x);
-      write_be_i16(state + 14, right_y);
-    }
-  }
+  __imp__sub_824E84B8(ctx, base);
 }
 
+REX_HOOK_RAW(sub_82AC4CB8)
+{
+  const uint32_t user_index = ctx.r3.u32;
+  const uint32_t state_address = ctx.r4.u32;
+  __imp__sub_82AC4CB8(ctx, base);
+  if ((user_index == 0 || (user_index & 0xFF) == 0xFF) && base && state_address && ctx.r3.u32 == 0)
+    pdz_input::Poll(base + state_address);
+}
 namespace game_patches
 {
   void ApplyEnabledPatches()
   {
+    pdz_input::ValidateImage();
     ApplyAspectRatioPatch();
+    UpdateFov();
+  }
+
+  void UpdateFov()
+  {
+    if (!pdz_input::Supported()) return;
+    static std::mutex mutex;
+    std::lock_guard lock(mutex);
+    const float fov = static_cast<float>(REXCVAR_GET(pdz_fov));
+    if (!std::isfinite(fov) || fov < 40.f || fov > 120.f) return;
+    static float applied = -1.f;
+    if (applied == fov) return;
+    const auto bits = std::bit_cast<uint32_t>(fov);
+    const std::array<uint8_t, 4> bytes{uint8_t(bits >> 24), uint8_t(bits >> 16),
+                                      uint8_t(bits >> 8), uint8_t(bits)};
+    if (WriteGuestBytes(0x820EC228, bytes.data(), 4)) {
+      applied = fov;
+      REXLOG_INFO("PDZ FOV scale applied: {}", fov);
+    }
   }
 } // namespace game_patches
+
+REX_EXTERN(__imp__sub_82521240);
+REX_HOOK_RAW(sub_82521240)
+{
+  // At this call site in sub_825A39B8, f17 is the smoothed ADS pose weight.
+  // Later code uses it for the weapon's own +140/+144/+148 position offsets
+  // and (1-f17) for hip yaw/sway. Override only this local-player render path;
+  // do not change shared weapon definitions, gameplay aim flags, or FOV.
+  const bool force = ctx.lr == 0x825A3CB4 && pdz_input::ForceAimPose(ctx.r31.u32);
+  __imp__sub_82521240(ctx, base);
+  if (force) ctx.f17.f64 = 1.0;
+}
+
+REX_EXTERN(__imp__sub_82AC4D18);
+REX_HOOK_RAW(sub_82AC4D18) {
+  const auto user = ctx.r3.u32;
+  const auto flags = ctx.r4.u32;
+  const auto out = ctx.r5.u32;
+  __imp__sub_82AC4D18(ctx, base);
+  if (ctx.r3.u32 == 4306 && (!(flags & 0xFF) || (flags & 1)) &&
+      pdz_input::MenuKeystroke((flags & 0x40000000) ? 0 : user, out)) ctx.r3.u64 = 0;
+  if (ctx.r3.u32 == 0 && out && pdz_campaign::BackKey(REX_LOAD_U16(out), REX_LOAD_U16(out + 4)))
+    ctx.r3.u64 = 4306;
+}
+REX_EXTERN(__imp__sub_82AC4CF8);
+REX_HOOK_RAW(sub_82AC4CF8) {
+  const auto user_ptr = ctx.r3.u32;
+  const auto flags = ctx.r4.u32;
+  const auto out = ctx.r5.u32;
+  const auto user = REX_LOAD_U32(user_ptr);
+  __imp__sub_82AC4CF8(ctx, base);
+  if (ctx.r3.u32 == 4306 && (!(flags & 0xFF) || (flags & 1)) &&
+      pdz_input::MenuKeystroke((flags & 0x40000000) ? 0 : user, out)) {
+    REX_STORE_U32(user_ptr, 0); ctx.r3.u64 = 0;
+  }
+  if (ctx.r3.u32 == 0 && out && pdz_campaign::BackKey(REX_LOAD_U16(out), REX_LOAD_U16(out + 4)))
+    ctx.r3.u64 = 4306;
+}
+REX_EXTERN(__imp__sub_826CFC10);
+REX_HOOK_RAW(sub_826CFC10) {
+  pdz_input::PaceFrame();
+  __imp__sub_826CFC10(ctx, base);
+}
+
+REX_EXTERN(__imp__sub_823EBA08);
+REX_HOOK_RAW(sub_823EBA08) {
+  uint32_t item = 0;
+  if (pdz_input::InventoryPageItem(ctx.r3.u32, ctx.r4.u32, item)) {
+    ctx.r3.u64 = item;
+    return;
+  }
+  __imp__sub_823EBA08(ctx, base);
+}

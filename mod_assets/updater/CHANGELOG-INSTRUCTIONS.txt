@@ -1,0 +1,6 @@
+Edit changelog.txt in this folder to change the in-game release notes.
+Save it as UTF-8 plain text. No build is needed.
+Open Check for Updates > Changelogs, or select Reload if already there.
+Text is split into short pages so it fits the game's native help-text area.
+Only the first 64 KiB are read. Put the newest release notes first.
+Include changelog.txt in your release's mod_assets/updater folder to distribute it.

@@ -1,0 +1,12 @@
+Modded Update 1.5.2 source
+
+The release tag contains the game-side source. Initialize submodules, then
+apply release/rexglue-modded.patch to thirdparty/rexglue-sdk at the pinned
+bd833a2ab69d305f99ddf57418fc38ffec8af93d revision before configuring CMake.
+Use clang 20, CMake and Ninja with the win-amd64-release preset, following
+the repository build instructions for extraction/code generation from your
+own game files. The binary release was built on Windows with D3D12/Vulkan,
+Tracy and performance counters disabled. No generated game code is supplied.
+
+Runtime mod assets are in the update ZIP; active settings are deliberately
+excluded. Retain existing settings when installing over an existing build.
