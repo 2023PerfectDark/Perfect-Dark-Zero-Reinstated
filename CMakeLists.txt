@@ -18,8 +18,6 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build_optimizations.cmake)
 # Build ReXGlue SDK from source (git submodule)
 set(REXSDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/rexglue-sdk" CACHE PATH "Path to rexglue-sdk source tree" FORCE)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fix-fpscr-exceptions.cmake)
-
 # Enable both graphics backends
 if(WIN32)
     set(REXGLUE_USE_D3D12 ON CACHE BOOL "Enable D3D12 graphics backend")
