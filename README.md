@@ -81,6 +81,20 @@ user_language = 1
 Only languages your copy of the game includes will work (check
 `assets/pdz/ASSETS/loc/`). Anything else falls back to English.
 
+### Local player profiles
+
+Press **F9** to open the profile list. You can create profiles, rename them and
+pick the one to play next time. Each profile has its own saves and achievements.
+A new profile or name takes effect after you restart the game.
+
+The first profile, "User", keeps the saves you already have. Other profiles
+save to `profiles/<id>/` in the user data folder (`Documents/perfectdarkzerorecomp`
+by default), so renaming a profile doesn't move its saves. The list is kept in
+`local_profiles.toml` in that folder. Settings and the shader cache are shared.
+
+Names are 1–15 characters: letters, digits, spaces, `-` and `_`. To use another
+key, change `bind_local_profiles` in `settings/mapping.toml`.
+
 ## Configuration
 
 All settings live in [`settings/`](settings/README.md) and are loaded at startup.

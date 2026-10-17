@@ -16,6 +16,7 @@
 #include "debug_tools.h"
 #include "game_cvars.h"
 #include "game_patches.h"
+#include "local_profiles.h"
 #include "mod/third_person.h"
 #include "utils.h"
 
@@ -55,11 +56,12 @@ public:
     game_patches::ApplyEnabledPatches();
   }
 
-  void OnCreateDialogs(rex::ui::ImGuiDrawer *) override
+  void OnCreateDialogs(rex::ui::ImGuiDrawer *drawer) override
   {
     // Registered before OnPostSetup reloads the settings files, so the key
     // can be rebound from mapping.toml.
     third_person::RegisterBinds();
+    local_profiles::Init(drawer);
   }
 
   void OnPostSetup() override
@@ -83,6 +85,7 @@ public:
 
   void OnShutdown() override
   {
+    local_profiles::Shutdown();
 #ifdef REXGLUE_ENABLE_PERF_COUNTERS
     rex::perf::FlushCsv();
 #endif
@@ -104,6 +107,10 @@ public:
     // Input mapping lives in its own file, loaded manually below (the SDK
     // only auto-loads the single path above).
     utils::LoadSettingsFiles();
+
+    // Each local profile keeps its saves in its own folder. The cache root
+    // was derived before this point, so the shader cache stays shared.
+    paths.user_data_root = local_profiles::Load(paths.user_data_root);
   }
 
   // Override virtual hooks for customization:
