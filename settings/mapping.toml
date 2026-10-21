@@ -34,10 +34,25 @@ mnk_mouse = true
 mnk_sensitivity = 5.0
 right_stick_deadzone_percentage = 0.2
 
+# Native mouse look (src/mouse/mouse_look_hook.cpp): on foot the mouse turns the
+# camera directly - 1:1, without the game's stick dead zone, response curve and
+# acceleration. Where the game's look update doesn't run (menus, cutscenes,
+# vehicles) the mouse falls back to the emulated right stick above (mnk_sensitivity).
+pdz_mouse_look = true
+# Camera turn per mouse count = 0.022 deg x this (same scale as Source games).
+pdz_mouse_sensitivity = 2.0
+pdz_mouse_invert_x = false
+pdz_mouse_invert_y = false
+# Scale the turn with the zoom FOV; pdz_mouse_zoom_sensitivity is an extra
+# factor on top while zoomed.
+pdz_mouse_zoom_scaling = true
+pdz_mouse_zoom_sensitivity = 1.0
+
 # ─────────────────────────────────────────────────────────────
 # Keyboard bindings (default values)
 # ─────────────────────────────────────────────────────────────
 # Format: comma-separated list of keys, optional modifiers (Shift+, Ctrl+, Alt+)
+# Mouse buttons: LMB, RMB, MMB
 
 # Controller buttons
 keybind_a = "Semicolon,Space"          # A button
@@ -46,8 +61,8 @@ keybind_x = "L"                        # X button
 keybind_y = "P"                        # Y button
 
 # Triggers (analog)
-keybind_left_trigger = "Q,I"           # Left trigger
-keybind_right_trigger = "E,O"          # Right trigger
+keybind_left_trigger = "Q,I,RMB"       # Left trigger (aim)
+keybind_right_trigger = "E,O,LMB"      # Right trigger (fire)
 
 # Shoulder buttons
 keybind_left_shoulder = "1"            # Left shoulder (LB)

@@ -138,8 +138,12 @@ not ported yet, so there is no corresponding cvar in this project.
 | `guide_button` | bool | `true` | Whether the controller Guide/PS button is routed to the guest. |
 | `mnk_mode` | bool | `true` | Enables keyboard-as-controller input, merged in alongside any physical gamepad (see below). |
 | `mnk_mouse` | bool | `true` | Routes mouse movement to the right stick when `mnk_mode` is on. Off means the right stick only comes from the `keybind_rstick_*` keys. |
-| `mnk_sensitivity` | double | `1.0` | Mouse sensitivity for the right stick, range `0.01`-`10.0`. |
-
+| `mnk_sensitivity` | double | `1.0` | Mouse sensitivity for the right stick, range `0.01`-`10.0`. With `pdz_mouse_look` on it only applies where native mouse look doesn't run (menus, cutscenes, vehicles). |
+| `pdz_mouse_look` | bool | `true` | Native mouse look: on foot the mouse turns the camera directly, skipping the game's stick dead zone, response curve and acceleration (aim assist still applies). Hook in [`src/mouse/mouse_look_hook.cpp`](../src/mouse/mouse_look_hook.cpp). Needs `mnk_mode` and `mnk_mouse`. |
+| `pdz_mouse_sensitivity` | double | `2.0` | Native mouse look: camera turn per mouse count = 0.022 deg x this. Range `0.01`-`100.0`. Independent of the in-game sensitivity option. |
+| `pdz_mouse_invert_x` / `pdz_mouse_invert_y` | bool | `false` | Invert native mouse look axes. The in-game Invert option doesn't apply to it. |
+| `pdz_mouse_zoom_scaling` | bool | `true` | Scale native mouse look by `tan(fov/2) / tan(58deg/2)` while zoomed, so the picture moves under the mouse at the same rate. |
+| `pdz_mouse_zoom_sensitivity` | double | `1.0` | Extra factor on native mouse look while zoomed in. |
 Gamepad button layout itself (DualShock 4, DualSense, Xbox, Switch Pro, ...)
 isn't a setting here - SDL auto-detects the controller and maps it to the
 Xbox 360 layout the game expects.

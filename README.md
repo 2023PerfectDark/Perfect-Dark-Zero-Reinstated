@@ -5,9 +5,18 @@
 </div>
 
 A static recompilation of [**Perfect Dark Zero**](https://en.wikipedia.org/wiki/Perfect_Dark_Zero)
-(Xbox 360, 2005, Title ID `4D5307D3`) to native PC, built on the
+(Xbox 360, 2005, Title ID `4D5307D3`, **[PAL]**) to native PC, built on the
 [ReXGlue SDK](https://github.com/rexglue/rexglue-sdk). The game's PowerPC code
 is translated into C++ and compiled. There is no emulator.
+
+Target retail release:
+
+| Field | Value |
+|---|---|
+| Title ID | `4D5307D3` |
+| XEX CRC | 375EC9BB |
+| Module Hash | `AA1EA03FEC9A549C` |
+| Media ID | `750FF1D9` |
 
 > This project is not affiliated with Microsoft or Rare. It contains no game
 > files: you need your own legally owned copy of the game.
@@ -48,9 +57,6 @@ is translated into C++ and compiled. There is no emulator.
    There are also Linux and macOS presets (`linux-amd64-*`, `mac-*`), but only
    Windows is tested. Codegen (`default.xex` → `generated/`) runs automatically
    as part of the build.
-
-Check that your dump is the expected retail release: XEX CRC `375EC9BB`,
-Media ID `6D6481013A4FDD3DA32BD2D0-750FF1D9`.
 
 ## Run
 

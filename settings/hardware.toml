@@ -58,11 +58,12 @@ vulkan_log_debug_messages = false
 vulkan_allow_present_mode_immediate = true
 vulkan_allow_present_mode_fifo_relaxed = false
 vulkan_allow_present_mode_mailbox = false
+vulkan_force_convert_quad_lists_to_triangle_lists = true
 
 headless = false
 
-# trace, debug, info, warn, error
-log_level = "critical"
+# trace, debug, info, warn, error, critical
+log_level = "error"
 
 use_dedicated_xma_thread = false
 xma_decoder = "new"
@@ -88,7 +89,7 @@ pdz_fps60_unlock = true
 pdz_aspect_ratio_16_9 = false
 
 # 0 = busy spin (original), 1 = yield the core, 2 = sleep 200us
-pdz_gpu_wait_mode = 0
+pdz_gpu_wait_mode = 1
 
 # Third-person camera, toggled in game with bind_third_person (V).
 # Camera-local offset in ~cm; z < 0 = behind. See src/mod/README.md.

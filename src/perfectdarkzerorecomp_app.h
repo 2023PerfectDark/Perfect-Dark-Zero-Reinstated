@@ -18,6 +18,7 @@
 #include "game_patches.h"
 #include "local_profiles.h"
 #include "mod/third_person.h"
+#include "mouse/mouse_look.h"
 #include "utils.h"
 
 #ifdef REXGLUE_ENABLE_PERF_COUNTERS
@@ -62,6 +63,7 @@ public:
     // can be rebound from mapping.toml.
     third_person::RegisterBinds();
     local_profiles::Init(drawer);
+    pdz::mouse::MouseLook::Get().Attach(window(), drawer);
   }
 
   void OnPostSetup() override
