@@ -17,18 +17,23 @@ vsync = true
 resolution_scale = 2
 present_effect = "fsr"
 present_fsr_sharpness_reduction = 0.2
-present_dither = false
+present_dither = true
 swap_post_effect = "smaa"
 async_shader_compilation = true
 native_2x_msaa = false
-anisotropic_override = 3
+anisotropic_override = 5
 
 texture_cache_memory_limit_soft = 1024
 texture_cache_memory_limit_hard = 4096
 clear_memory_page_state = false
 readback_memexport = false
 readback_memexport_fast = false
+readback_resolve = "none"
 host_present_from_non_ui_thread	= true
+gpu_allow_invalid_fetch_constants = true
+depth_bias_shader_offset = true
+use_dedicated_xma_thread = false
+framerate_limit = 0
 
 window_width = 1920
 window_height = 1080
@@ -52,6 +57,7 @@ d3d12_pipeline_creation_threads = -1
 d3d12_queue_priority = 2
 d3d12_submit_on_primary_buffer_end = true
 d3d12_tessellation_wireframe = false
+d3d12_readback_resolve = false
 
 render_target_path_vulkan = "fbo"
 vulkan_log_debug_messages = false
@@ -64,16 +70,6 @@ headless = false
 
 # trace, debug, info, warn, error, critical
 log_level = "error"
-
-use_dedicated_xma_thread = false
-xma_decoder = "new"
-mount_cache = true
-framerate_limit = 0
-d3d12_readback_resolve = false
-readback_resolve = "none"
-
-gpu_allow_invalid_fetch_constants = true
-depth_bias_shader_offset = true
 
 # Perf CSV log path (per-frame metrics). Empty = disabled.
 # Only works when REXGLUE_ENABLE_PERF_COUNTERS is defined (non-Release).
@@ -106,3 +102,7 @@ pdz_tp_offset_z = -320.0
 # Languages without implementation in your legal disk will fall back to English.
 ##
 user_language = 1
+
+# Split-screen: local players and their controllers (see split-screen.md).
+max_local_users = 4
+#keyboard_own_player = true

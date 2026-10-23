@@ -35,6 +35,8 @@ set(PERFECTDARKZERORECOMP_SOURCES
     src/mouse/mouse_look.cpp
     src/mouse/mouse_look_hook.cpp
     src/render/gpu_wait_hook.cpp
+    src/timing/physics_step_hook.cpp
+    src/timing/cutscene_frame_cap_hook.cpp
     src/mod/third_person.cpp
 )
 

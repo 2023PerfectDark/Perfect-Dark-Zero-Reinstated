@@ -6,7 +6,7 @@ database and this README.
 
 | File | Covers |
 |---|---|
-| [`hardware.toml`](hardware.toml) | Renderer/backend, window, vsync, resolution, debug output, experimental gameplay patches |
+| [`hardware.toml`](hardware.toml) | Renderer/backend, window, vsync, resolution, debug output, gameplay patches, language, local split-screen players |
 | [`mapping.toml`](mapping.toml) | Input backend selection (gamepad/keyboard+mouse) |
 | [`gamecontrollerdb.txt`](gamecontrollerdb.txt) | SDL gamepad mappings for controllers it doesn't already recognize - not hand-authored, see below |
 
@@ -111,11 +111,11 @@ build actually ships with), not the SDK's compiled-in default.
 |---|---|---|---|
 | `gpu_plugin` | string | `"xenos"` | GPU emulation plugin to load. Set here rather than on the command line now - see root [README](../README.md#run). A `--gpu_plugin` flag would still override this file if you ever needed a different plugin. |
 | `graphics_backend` | string | `"any"` | Graphics API backend: `"any"` (D3D12 first when both are compiled in), `"d3d12"`, or `"vulkan"`. Project-defined cvar (not from the SDK), wired up in `OnPreSetup()` in [`src/perfectdarkzerorecomp_app.h`](../src/perfectdarkzerorecomp_app.h) - it loads the plugin itself with the requested backend before the SDK's own auto-load (which only ever requests `"any"`) runs. Falls back to automatic selection with a warning if the requested backend isn't compiled into `rexgpu-xenos`. |
-| `vsync` | bool | `false` | Vertical sync. |
+| `vsync` | bool | `true` | Vertical sync. |
 | `resolution_scale` | int | `2` | Internal render-target supersampling, independent of window/guest resolution. |
 | `async_shader_compilation` | bool | `true` | Compile shaders on a background thread instead of blocking the render thread - reduces hitches when new shaders are first seen. |
-| `native_2x_msaa` | bool | `true` | Native 2x MSAA on the emulated render targets. |
-| `anisotropic_override` | int | `1` | Forces anisotropic texture filtering to this level (e.g. `16`); `0` leaves the game's own setting alone. |
+| `native_2x_msaa` | bool | `false` | Native 2x MSAA on the emulated render targets. |
+| `anisotropic_override` | int | `5` | Forces anisotropic texture filtering to this level (e.g. `16`); `0` leaves the game's own setting alone. |
 | `window_width` / `window_height` | int | `1920` / `1080` | Host window size. |
 | `fullscreen` | bool | `true` | Host window fullscreen. |
 | `monitor` | int | `0` | Host monitor index for fullscreen. |
@@ -125,9 +125,49 @@ build actually ships with), not the SDK's compiled-in default.
 | `pdz_fps60_unlock` | bool | `true` | Port of Xenia-canary's Perfect Dark Zero "60 FPS" patch. Applied through a C++ function override and can be toggled at runtime. |
 | `pdz_aspect_ratio_16_9` | bool | `false` | Port of Xenia-canary's "Aspect Ratio" patch. Applied while loading the game image; restart after changing it. |
 | `user_language` | int | `1` | Game language: `1` English, `3` German, `4` French. SDK cvar, applied by a hook in [`src/game_patches.cpp`](../src/game_patches.cpp) because the SDK's `XGetLanguage` ignores it. Languages missing from `loc/` fall back to English. Restart after changing it. |
+| `pdz_gpu_wait_mode` | int | `1` | How the game's GPU wait loop idles: `0` busy spin (original), `1` yield the core, `2` sleep 200 µs. Hook in `src/render/`. |
+| `pdz_tp_enable` | bool | `false` | Start in third person; toggled in game with `bind_third_person` (V). Offset keys `pdz_tp_offset_x` / `_y` / `_z` (`-80.0` / `10.0` / `-320.0`) are described in [`src/mod/README.md`](../src/mod/README.md). |
+| `max_local_users` | int | `2` | Local split-screen players that can be signed in, 1 to 4. The shipped value is `2`; the SDK default is `1` (single player). SDK cvar, see [Split-screen](#split-screen). |
+| `keyboard_own_player` | bool | `false` (commented out) | Keyboard and mouse are player 1 on their own and gamepads start at player 2. Shipped commented out in `hardware.toml`; uncomment to use. See [Split-screen](#split-screen). |
 
 The source Xenia patch file also contains a "Bottomless Clip" patch. It is
 not ported yet, so there is no corresponding cvar in this project.
+
+## Split-screen
+
+Perfect Dark Zero has local split-screen, and the runtime can sign in several
+local players the way a console does when another person picks up a
+controller. `hardware.toml` ships with `max_local_users = 2`, so two players
+work out of the box:
+
+- Player 1: keyboard and mouse plus gamepad 1.
+- Player 2: gamepad 2, signed in when that gamepad is connected (and signed out
+  when it is removed). The game sees the usual sign-in change notification.
+- Each player keeps their own in-game options (look inversion, sensitivity,
+  button layout) in a per-player profile folder; save games are shared and kept
+  under player 1.
+
+Common setups, all in `hardware.toml`:
+
+```toml
+# Two gamepads (default as shipped)
+max_local_users = 2
+
+# One gamepad: keyboard and mouse against the pad
+max_local_users = 2
+keyboard_own_player = true
+
+# Up to four players, one gamepad each
+max_local_users = 4
+```
+
+Beyond this, `input_player1` / `input_player2` pick devices explicitly and
+`user_gamertag_2` names the second player. These are SDK cvars; they are not
+listed in `hardware.toml` but can be added like any other key. The full
+description, examples and troubleshooting are in
+[`split-screen.md`](split-screen.md). Limits: at most four players, chosen
+devices cover players 1 and 2 only, no per-player gamepad remapping, and the
+game itself decides how split-screen looks and when it accepts new players.
 
 ## `mapping.toml` reference
 

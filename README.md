@@ -23,8 +23,11 @@ Target retail release:
 
 ## Status
 
-- Fully playable on Windows: video, audio, gameplay, achievements and saves.
+- Fully playable on Windows and Linux: video, audio, gameplay, achievements and saves.
 - Keyboard and mouse support.
+- Local split-screen for 4 players out of the box (`max_local_users = 4`), up
+  to 4 players with gamepads. Keyboard and mouse can be one of the players, see
+  [Split-screen](#split-screen).
 - Optional patches: 60 FPS (on by default) and 16:9.
 - Third-person camera and language selection, see [Mods](#mods).
 
@@ -87,6 +90,22 @@ user_language = 1
 Only languages your copy of the game includes will work (check
 `assets/pdz/ASSETS/loc/`). Anything else falls back to English.
 
+### Split-screen
+
+Set `max_local_users` in `hardware.toml` (1 to 4; the file ships with `2`).
+Player 1 uses keyboard and mouse plus gamepad 1, player 2 signs in when a
+second gamepad is connected, and players 3 and 4 follow with gamepads 3 and 4.
+
+```
+# Two players, one gamepad: keyboard and mouse against the pad
+max_local_users = 2
+keyboard_own_player = true
+```
+
+Each player keeps their own in-game options; saves are shared. Explicit device
+assignment, player names and troubleshooting are in
+[`settings/split-screen.md`](settings/split-screen.md).
+
 ### Local player profiles
 
 Press **F9** to open the profile list. You can create profiles, rename them and
@@ -108,7 +127,7 @@ Most can also be changed in game from the F4 overlay.
 
 | File | What it covers |
 |---|---|
-| `hardware.toml` | renderer, window, patches (`pdz_fps60_unlock`, `pdz_aspect_ratio_16_9`), `pdz_gpu_wait_mode`, third-person camera (`pdz_tp_*`), language (`user_language`) |
+| `hardware.toml` | renderer, window, patches (`pdz_fps60_unlock`, `pdz_aspect_ratio_16_9`), `pdz_gpu_wait_mode`, third-person camera (`pdz_tp_*`), language (`user_language`), split-screen (`max_local_users`, `keyboard_own_player`) |
 | `mapping.toml` | input backend, keyboard and mouse (`mnk_*`), key bindings including `bind_third_person` |
 
 ## Development notes
@@ -116,7 +135,7 @@ Most can also be changed in game from the F4 overlay.
 - Set `dev_debug_runtime = true` to stub every unknown function and log
   missing ones to `logs/stub_sweep.txt` and `logs/missed_functions.txt`.
 - Game-specific hooks are in `src/`: patches, the GPU wait hook in `render/`,
-  and the camera mod in `mod/`.
+  high-FPS physics and cutscene timing in `timing/`, and the camera mod in `mod/`.
 
 ## Credits
 
@@ -124,6 +143,8 @@ Most can also be changed in game from the F4 overlay.
   derived from [Xenia](https://github.com/xenia-project/xenia)
 - [xenia-canary/game-patches](https://github.com/xenia-canary/game-patches),
   the source of the 60 FPS and 16:9 patches
+- [2023PerfectDark/Perfect-Dark-Zero-Reinstated](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated),
+  the source of the high-FPS physics and cutscene timing fixes
 - [SDL_GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB),
   for `settings/gamecontrollerdb.txt` (zlib license)
 - [ABGX360](https://github.com/BakasuraRCE/abgx360) and
