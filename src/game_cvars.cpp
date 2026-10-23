@@ -4,6 +4,11 @@ REXCVAR_DEFINE_STRING(graphics_backend, "any", "GPU",
                       "Graphics API backend: any, d3d12, vulkan")
     .allowed({"any", "d3d12", "vulkan"});
 
+REXCVAR_DEFINE_DOUBLE(pdz_fov, 58.0, "Gameplay",
+                      "Field of view (vertical degrees before zoom; original: 58)")
+    .range(40.0, 120.0)
+    .lifecycle(rex::cvar::Lifecycle::kHotReload);
+
 REXCVAR_DEFINE_BOOL(pdz_fps60_unlock, false, "Gameplay",
                     "Unlock 60 FPS");
 

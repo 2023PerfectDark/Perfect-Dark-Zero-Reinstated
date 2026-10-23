@@ -1,6 +1,8 @@
 #include "generated/default/perfectdarkzerorecomp_init.h"
 
 #include <array>
+#include <bit>
+#include <cmath>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -194,5 +196,30 @@ namespace game_patches
   void ApplyEnabledPatches()
   {
     ApplyAspectRatioPatch();
+    UpdateFov();
+  }
+
+  void UpdateFov()
+  {
+    const float fov = static_cast<float>(REXCVAR_GET(pdz_fov));
+    if (!std::isfinite(fov) || fov < 40.0f || fov > 120.0f)
+    {
+      return;
+    }
+    // Called on the guest thread before the camera update. The UI changes
+    // only the cvar; it never writes guest memory or changes page protection.
+    auto *rt = rex::Runtime::instance();
+    if (!rt || !rt->memory()->LookupHeap(GameConstants::PatchConstants::kFovAddress))
+    {
+      return;
+    }
+    const auto *current = rt->memory()->TranslateVirtual(GameConstants::PatchConstants::kFovAddress);
+    const uint32_t bits = std::bit_cast<uint32_t>(fov);
+    const std::array<uint8_t, 4> bytes{
+        uint8_t(bits >> 24), uint8_t(bits >> 16), uint8_t(bits >> 8), uint8_t(bits)};
+    if (std::memcmp(current, bytes.data(), bytes.size()) != 0)
+    {
+      WriteGuestBytes(GameConstants::PatchConstants::kFovAddress, bytes.data(), bytes.size());
+    }
   }
 } // namespace game_patches

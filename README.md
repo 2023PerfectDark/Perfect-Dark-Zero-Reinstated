@@ -78,6 +78,15 @@ Press **V** in game to switch between first and third person. Set
 `pdz_tp_enable = true` in `hardware.toml` to start in third person. Camera
 offset and the rest of the options are in [`src/mod/README.md`](src/mod/README.md).
 
+### Field of view
+
+Press F6 to open the FoV slider (40–120 vertical degrees, original 58), with a
+button to reset to the original value. Press F6 again to close it. You can also
+edit `pdz_fov` in the F4 Settings overlay under Gameplay. The change takes effect on the next gameplay camera update, preserving
+weapon zoom. Rebind `bind_fov_settings` in `settings/mapping.toml` if needed.
+Use **Save to config** to keep it between sessions, or set
+`pdz_fov = 58.0` in `settings/hardware.toml` to restore the original value.
+
 ### Language
 
 Set `user_language` in `hardware.toml` and restart the game:

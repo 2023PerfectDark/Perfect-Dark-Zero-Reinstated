@@ -34,6 +34,9 @@ namespace GameConstants::PatchConstants
         0x00010000};
   }
 
+  // Retail PAL camera FoV constant, multiplied by the native zoom factor.
+  constexpr uint32_t kFovAddress = 0x820EC228;
+
   constexpr Patch AspectRatio()
   {
     return Patch{
