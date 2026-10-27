@@ -1,5 +1,13 @@
 # Perfect Dark Zero Reinstated
 
+## [Download the latest installer — 1.8 / v121](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/tag/PDZInstaller)
+
+**[Download installer ZIP](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/download/PDZInstaller/Perfect.Dark.Zero.Reinstated.v121.zip)** · [Release notes and verification](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/tag/PDZInstaller) · [Current TU3 source backup](reinstated-tu3)
+
+The self-contained installer includes Surface and the optional completed-playthrough shader cache. v121 fixes the in-game updater configuration and TU3 package selection. It uses the v120 game build; remaining gameplay checks and known limitations are documented in the release and VALIDATION.txt.
+
+---
+
 <div align="center">
   <img src="assets/icon.png" alt="PerfectDarkZeroRecomp" width="480">
 </div>

@@ -1,0 +1,91 @@
+PERFECT DARK ZERO: REINSTATED - RELEASE VALIDATION
+Release candidate v121 - 26 October 2026
+TU3 base 1.8; game build v120
+
+UPDATER AND PACKAGING v121
+The installer now includes its update source configuration and targets
+2023PerfectDark/Perfect-Dark-Zero-Reinstated. Only compatible TU3 update
+packages are accepted. Older retail packages cannot replace this build.
+Updated assets on the installer release are identified by their SHA256
+digest and upload time, even when the release tag stays the same.
+The game executable is unchanged from v120; gameplay limits below remain.
+
+CURRENT AUTOMATED CHECKS
+All six regression runners passed during this release preparation:
+- 15 host behavior tests: reload timing, physics timing, input logic,
+  breathing motion, NPC placement, Nightclub suspicion, MP progression,
+  mission summary, debug position, cheat progress, campaign logic,
+  Perfect Dark Zero mode, co-op ally logic, co-op synchronization,
+  and Surface mission policy.
+- Native animation sampler and holster stability, including 10,000 cache
+  selections with no live-graph eviction. Owner/model changes and cache
+  exhaustion are covered; native teardown makes slots reusable.
+- Model palette lifetime and material-table guards. Harnesses reproduce
+  the old stale-memory overwrite and verify the corrected scope.
+- Manual Reload's automatic-reload and Fire-button gates.
+- Blink timing at 30/60/120/240/360 FPS, including native cover handling.
+Host tests do not prove all native resource lifetimes or gameplay behavior.
+
+RUNTIME EVIDENCE
+The user confirmed Surface boxes and the three native red barrels.
+The v117 Klobb crash was captured at the native CMP150 record initializer
+with a missing model. The corrected loader preloads the donor package,
+checks availability, and holds its package lease through weapon cleanup.
+The later v119 trace records Klobb weapon ID 39 and reload playback.
+The v119 monitored process exited with code 0.
+The v120 monitored run reached multiplayer gameplay and exited normally
+with code 0. It does not establish solo holster stress-test coverage.
+Manual Reload and third-person/cover blinking were user-confirmed working.
+
+HOLSTER LIMITATIONS
+Resident cosmetic copies are hidden on equip/drop or when the feature is
+turned off. Native parent teardown owns destruction. The 13-entry cache
+omits new cosmetic copies when full instead of evicting a live graph.
+The DEF-12 shotgun cosmetic holster remains excluded. Earlier material
+corruption and GPU device-hung incidents are not all proven resolved by
+this change. Solo pickup/switching and mission-transition tests remain.
+
+PAYLOAD AND DEFAULTS
+The TU3 payload matches the compiled v120 executable. Packaging verifies
+all manifest sizes/hashes, artwork paths, destination uniqueness and ZIP CRC.
+Surface v4 terrain, pickup geometry, music, supporting textures and the
+native red-barrel package are mandatory packaging checks.
+Fresh installations keep unlock-all disabled, walking speed at 20%, and
+runtime debugging off. Existing player installations are not overwritten.
+Only four reviewed optional shareable shader files are bundled under user/;
+no personal settings, saves, logs, crash dumps or debug symbols are included.
+The download folder contains only PDZ Setup.exe, README.txt and VALIDATION.txt.
+
+OPTIONAL COMPLETED-PLAYTHROUGH CACHE
+The creator authorized the completed-playthrough snapshot taken on
+25 October 2026. It contains 1,598 unique shaders, 2,408 D3D12 ROV pipelines,
+1,353 D3D12 RTV pipelines and 578 Vulkan FBO pipelines.
+Earlier cache validation checked record hashes, shader references and
+format/API headers. The installer offers:
+  Use the completed playthrough cache (recommended)
+  Build my own cache
+The supplied Joanna artwork appears on that page. Earlier tests exercised
+both staged cache installation paths, choice persistence, TU3-only inclusion
+and size accounting. This preparation rechecks the packaged file hashes;
+it is not a new full game install or cross-GPU performance benchmark.
+GPU-specific preparation and additional first-use shader work remain possible.
+
+OTHER USER-CONFIRMED RESULTS
+KSI-74 bayonet recovery/reuse; Mission 1 AudioScope droplets and clearing;
+Mission 6 muzzle flashes/smoke after added splash/ripple emitters were removed;
+native snow in Missions 4/6/7 and prior flake size/density adjustments.
+
+EARLIER INSTALLER COVERAGE
+Original US retail ISO accepted, Rev 1 rejected; regional language sources,
+TU3 patching, Chinese menus, clean Map Pack Two and Bonus DVD installation
+were checked earlier. A retail-only installation reached the front end.
+Unsafe extraction paths, cancellation and Bonus video playback/seeking were
+checked earlier. These full installations were not repeated for v120.
+
+REMAINING COVERAGE
+Random bot body/head selection was reported unresolved and needs a retest.
+Automatic climbing, weather area boundaries and Mission 1 ending rain need
+broader playthrough coverage. Bonus DVD physical controller use and a clean
+Map Pack One source remain unverified. Some translated installer pages retain
+English explanations. This candidate is not certification of every mission,
+renderer, hardware configuration or of crash-free gameplay.

@@ -1,0 +1,42 @@
+Perfect Dark Zero: Reinstated - v1.6 modded update
+Prepared 2026-10-18. Local release candidate; not published.
+
+INSTALL
+Close the game. Back up your installation, then merge the PDZ-Recomp folder
+into your existing installation and replace matching files. Keep the EXE and
+both runtime DLLs together. Original compatible game files are still required.
+This archive does not contain the full base game, an ISO, or default.xex.
+Do not delete your settings, profiles, saves or mod-progress folders.
+Use Launch Stable.cmd: it disables background shader compilation to avoid the
+bright corruption seen while missions loaded. It does not force a renderer.
+Direct3D 12 and Vulkan remain selectable; renderer/driver coverage is incomplete.
+Existing saved settings continue to control optional gameplay features.
+
+INCLUDED
+- v1.6 runtime with the current mouse/input and gameplay modifications.
+- Rain in Missions 1/2; snow in Missions 4/6; screen droplets and surface audio.
+- Breathing, footstep camera motion and smoothed head-roll transitions.
+- Current Nightclub population, civilian dancing and guard-suspicion behavior.
+- DarkOps bot team, scoreboard and round-life corrections.
+- PD-style mission summary, cheats and multiplayer progression menus.
+- Mouse-operated native sliders and settings arrows.
+- d-PAL notification hides after five seconds; messages remain accessible.
+- Short-dress Joanna head with the approved beauty mark.
+- Debug Position remains available for restoring position after game closure.
+
+EXCLUDED
+Major, the discarded concept outfit, development projects, diagnostic tools,
+logs, symbols, memory dumps, personal settings, saves, profiles and unlocks.
+No personal Perfect Dark Zero mode unlock is supplied. Other users must earn it.
+Normal application error logging may still occur; no debug configuration is shipped.
+
+VALIDATION / LIMITS
+The binaries match the installed build. Applicable policy tests passed, including
+position storage, input, profiles, progression, bot waves, reload timing, camera
+motion and notification timeout. Two legacy full-checkpoint tests reference SDK
+headers absent from v1.6 and were not run. Full mission/multiplayer regression
+and clean-install gameplay testing are incomplete. This is not a claim of full
+checkpoint serialization or a guarantee against all crashes.
+
+SHA256SUMS.json covers every payload file except itself. This update contains
+modified character/media resources and retains available license notices.

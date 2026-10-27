@@ -1,0 +1,11 @@
+{
+  "sdk": {
+    "commit": "947c576e7a78279366d98b35ecb0cbb36c4f2be7",
+    "origin": "https://github.com/nikolaygorb/rexglue-sdk.git"
+  },
+  "upstream_game": {
+    "commit": null,
+    "origin": null
+  },
+  "libmspack_commit": "305907723a4e7ab2018e58040059ffb5e77db837"
+}

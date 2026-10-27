@@ -1,0 +1,1019 @@
+﻿{
+  "Next": [
+    "Weiter",
+    "Suivant",
+    "Avanti",
+    "Siguiente",
+    "次へ",
+    "下一步",
+    "다음"
+  ],
+  "Back": [
+    "Zurück",
+    "Retour",
+    "Indietro",
+    "Atrás",
+    "戻る",
+    "返回",
+    "뒤로"
+  ],
+  "Skip": [
+    "Überspringen",
+    "Passer",
+    "Salta",
+    "Omitir",
+    "スキップ",
+    "略過",
+    "건너뛰기"
+  ],
+  "Install": [
+    "Installieren",
+    "Installer",
+    "Installa",
+    "Instalar",
+    "インストール",
+    "安裝",
+    "설치"
+  ],
+  "Finish": [
+    "Fertig",
+    "Terminer",
+    "Fine",
+    "Finalizar",
+    "終了",
+    "完成",
+    "마침"
+  ],
+  "Cancel": [
+    "Abbrechen",
+    "Annuler",
+    "Annulla",
+    "Cancelar",
+    "キャンセル",
+    "取消",
+    "취소"
+  ],
+  "Please select a language.": [
+    "Bitte eine Sprache auswählen.",
+    "Veuillez choisir une langue.",
+    "Seleziona una lingua.",
+    "Selecciona un idioma.",
+    "言語を選択してください。",
+    "請選擇語言。",
+    "언어를 선택하세요."
+  ],
+  "Welcome to Perfect Dark Zero: Reinstated!": [
+    "Willkommen bei Perfect Dark Zero: Reinstated!",
+    "Bienvenue dans Perfect Dark Zero: Reinstated !",
+    "Benvenuto in Perfect Dark Zero: Reinstated!",
+    "¡Bienvenido a Perfect Dark Zero: Reinstated!",
+    "Perfect Dark Zero: Reinstated へようこそ！",
+    "歡迎使用 Perfect Dark Zero: Reinstated！",
+    "Perfect Dark Zero: Reinstated에 오신 것을 환영합니다!"
+  ],
+  "Add your game and optional title update.": [
+    "Spiel und optionales Titel-Update hinzufügen.",
+    "Ajoutez le jeu et sa mise à jour facultative.",
+    "Aggiungi il gioco e l'aggiornamento facoltativo.",
+    "Añade el juego y la actualización opcional.",
+    "ゲームと任意のタイトルアップデートを追加します。",
+    "加入遊戲與選用的遊戲更新。",
+    "게임과 선택 사항인 타이틀 업데이트를 추가하세요."
+  ],
+  "Add your DLC, or skip this step.": [
+    "DLC hinzufügen oder diesen Schritt überspringen.",
+    "Ajoutez vos DLC ou passez cette étape.",
+    "Aggiungi i DLC o salta questo passaggio.",
+    "Añade los DLC u omite este paso.",
+    "DLC を追加するか、スキップしてください。",
+    "加入 DLC，或略過此步驟。",
+    "DLC를 추가하거나 이 단계를 건너뛰세요."
+  ],
+  "Choose additional display languages.": [
+    "Zusätzliche Textsprachen auswählen.",
+    "Choisissez les langues d'affichage supplémentaires.",
+    "Scegli le lingue aggiuntive per i testi.",
+    "Elige idiomas adicionales para los textos.",
+    "追加する表示言語を選択してください。",
+    "選擇要加入的顯示語言。",
+    "추가할 표시 언어를 선택하세요."
+  ],
+  "Choose the voices you want to add.": [
+    "Gewünschte Sprachausgaben auswählen.",
+    "Choisissez les doublages à ajouter.",
+    "Scegli i doppiaggi da aggiungere.",
+    "Elige los doblajes que quieres añadir.",
+    "追加する音声言語を選択してください。",
+    "選擇要加入的語音。",
+    "추가할 음성 언어를 선택하세요."
+  ],
+  "Have the Limited Edition Bonus DVD?": [
+    "Besitzt du die Limited Edition Bonus-DVD?",
+    "Vous avez le DVD bonus de l'édition limitée ?",
+    "Hai il DVD bonus della Limited Edition?",
+    "¿Tienes el DVD extra de la edición limitada?",
+    "限定版のボーナス DVD をお持ちですか？",
+    "您有典藏版附贈 DVD 嗎？",
+    "한정판 보너스 DVD가 있나요?"
+  ],
+  "Choose where to install.": [
+    "Installationsordner auswählen.",
+    "Choisissez le dossier d'installation.",
+    "Scegli dove installare.",
+    "Elige dónde instalar.",
+    "インストール先を選択してください。",
+    "選擇安裝位置。",
+    "설치 위치를 선택하세요."
+  ],
+  "Installation complete!": [
+    "Installation abgeschlossen!",
+    "Installation terminée !",
+    "Installazione completata!",
+    "¡Instalación completa!",
+    "インストール完了！",
+    "安裝完成！",
+    "설치 완료!"
+  ],
+  "Installation failed.": [
+    "Installation fehlgeschlagen.",
+    "Échec de l'installation.",
+    "Installazione non riuscita.",
+    "La instalación ha fallado.",
+    "インストールに失敗しました。",
+    "安裝失敗。",
+    "설치에 실패했습니다."
+  ],
+  "Did you know there is a Perfect Dark Zero Comic?": [
+    "Wusstest du, dass es einen Perfect Dark Zero Comic gibt?",
+    "Saviez-vous qu'il existe une BD Perfect Dark Zero ?",
+    "Sapevi che esiste un fumetto di Perfect Dark Zero?",
+    "¿Sabías que existe un cómic de Perfect Dark Zero?",
+    "Perfect Dark Zero のコミックをご存じですか？",
+    "您知道 Perfect Dark Zero 也有漫畫嗎？",
+    "Perfect Dark Zero 만화가 있다는 사실을 알고 계셨나요?"
+  ],
+  "You'll need an original US retail Xbox 360 copy of Perfect Dark Zero. Rev 1 and Limited Edition game discs are not supported.": [
+    "Du benötigst die ursprüngliche US-Verkaufsversion von Perfect Dark Zero für Xbox 360. Rev 1 und die Spiel-Disc der Limited Edition werden nicht unterstützt.",
+    "Il vous faut l'édition commerciale américaine originale de Perfect Dark Zero sur Xbox 360. Les disques Rev 1 et Limited Edition ne sont pas compatibles.",
+    "Serve la versione originale americana di Perfect Dark Zero per Xbox 360. I dischi Rev 1 e Limited Edition non sono supportati.",
+    "Necesitas la edición comercial original de EE. UU. de Perfect Dark Zero para Xbox 360. No se admiten los discos Rev 1 ni Limited Edition.",
+    "Xbox 360 版 Perfect Dark Zero の初版 US 通常版が必要です。Rev 1 と限定版のゲームディスクには対応していません。",
+    "您需要 Xbox 360 版 Perfect Dark Zero 的初版美國零售版。此安裝程式不支援 Rev 1 與典藏版的遊戲光碟。",
+    "Xbox 360용 Perfect Dark Zero의 최초 미국 일반 판매판이 필요합니다. Rev 1 및 한정판 게임 디스크는 지원하지 않습니다."
+  ],
+  "Browse ISO": [
+    "ISO auswählen",
+    "Choisir l'ISO",
+    "Sfoglia ISO",
+    "Buscar ISO",
+    "ISO を選択",
+    "瀏覽 ISO",
+    "ISO 찾아보기"
+  ],
+  "Add files": [
+    "Dateien hinzufügen",
+    "Ajouter des fichiers",
+    "Aggiungi file",
+    "Añadir archivos",
+    "ファイルを追加",
+    "加入檔案",
+    "파일 추가"
+  ],
+  "Add folder": [
+    "Ordner hinzufügen",
+    "Ajouter un dossier",
+    "Aggiungi cartella",
+    "Añadir carpeta",
+    "フォルダーを追加",
+    "加入資料夾",
+    "폴더 추가"
+  ],
+  "Clear": [
+    "Leeren",
+    "Effacer",
+    "Cancella",
+    "Borrar",
+    "クリア",
+    "清除",
+    "지우기"
+  ],
+  "Select all": [
+    "Alle auswählen",
+    "Tout sélectionner",
+    "Seleziona tutto",
+    "Seleccionar todo",
+    "すべて選択",
+    "全選",
+    "모두 선택"
+  ],
+  "None": [
+    "Keine",
+    "Aucun",
+    "Nessuno",
+    "Ninguno",
+    "選択解除",
+    "全部取消選取",
+    "선택 해제"
+  ],
+  "Check sources & space": [
+    "Quellen & Speicher prüfen",
+    "Vérifier les sources et l'espace",
+    "Verifica sorgenti e spazio",
+    "Comprobar archivos y espacio",
+    "ファイルと空き容量を確認",
+    "檢查來源與空間",
+    "원본 및 공간 확인"
+  ],
+  "Game ISO or extracted folder": [
+    "Spiel-ISO oder entpackter Ordner",
+    "ISO du jeu ou dossier extrait",
+    "ISO del gioco o cartella estratta",
+    "ISO del juego o carpeta extraída",
+    "ゲーム ISO または展開済みフォルダー",
+    "遊戲 ISO 或已解壓縮的資料夾",
+    "게임 ISO 또는 압축 해제된 폴더"
+  ],
+  "Title Update 3 (optional)": [
+    "Titel-Update 3 (optional)",
+    "Mise à jour 3 (facultative)",
+    "Aggiornamento 3 (facoltativo)",
+    "Actualización 3 (opcional)",
+    "タイトルアップデート 3（任意）",
+    "Title Update 3（選用）",
+    "타이틀 업데이트 3 (선택 사항)"
+  ],
+  "Skip title update": [
+    "Titel-Update überspringen",
+    "Ignorer la mise à jour",
+    "Salta aggiornamento",
+    "Omitir actualización",
+    "アップデートをスキップ",
+    "略過遊戲更新",
+    "타이틀 업데이트 건너뛰기"
+  ],
+  "The installer extracts your ISO automatically. Keep the original ISO; no manual extraction is needed.": [
+    "Das ISO wird automatisch entpackt. Die Originaldatei bleibt erhalten; manuelles Entpacken ist nicht nötig.",
+    "L'ISO est extraite automatiquement. Le fichier original est conservé ; aucune extraction manuelle n'est nécessaire.",
+    "L'ISO viene estratta automaticamente. Il file originale viene conservato; non serve estrarla manualmente.",
+    "El instalador extrae la ISO automáticamente y conserva el archivo original. No hace falta extraerla a mano.",
+    "ISO は自動で展開され、元のファイルは保持されます。手動での展開は不要です。",
+    "安裝程式會自動解壓縮 ISO，並保留原始檔案。您不需要手動解壓縮。",
+    "설치 프로그램이 ISO를 자동으로 추출합니다. 원본 ISO는 보존되며 직접 추출할 필요가 없습니다."
+  ],
+  "Without the title update, the installer uses the earlier original-disc build. The latest TU3 gameplay fixes require Title Update 3.": [
+    "Ohne Titel-Update wird der frühere Build für die Original-Disc verwendet. Die neuesten TU3-Korrekturen benötigen Titel-Update 3.",
+    "Sans mise à jour, l'ancien build pour le disque original est utilisé. Les derniers correctifs TU3 nécessitent la mise à jour 3.",
+    "Senza aggiornamento viene usata la build precedente per il disco originale. Le ultime correzioni TU3 richiedono l'aggiornamento 3.",
+    "Sin actualización se usa la versión anterior para el disco original. Las últimas correcciones TU3 requieren la actualización 3.",
+    "スキップすると初版ディスク向けの以前のビルドを使用します。最新の TU3 修正にはアップデート 3 が必要です。",
+    "若略過遊戲更新，將使用較早的原版光碟版本。最新的 TU3 遊戲修正需要 Title Update 3。",
+    "타이틀 업데이트를 건너뛰면 원본 디스크용 이전 빌드가 설치됩니다. 최신 TU3 게임플레이 수정 사항을 사용하려면 타이틀 업데이트 3이 필요합니다."
+  ],
+  "Installing Perfect Dark Zero: Reinstated…": [
+    "Perfect Dark Zero: Reinstated wird installiert…",
+    "Installation de Perfect Dark Zero: Reinstated…",
+    "Installazione di Perfect Dark Zero: Reinstated…",
+    "Instalando Perfect Dark Zero: Reinstated…",
+    "Perfect Dark Zero: Reinstated をインストール中…",
+    "正在安裝 Perfect Dark Zero: Reinstated…",
+    "Perfect Dark Zero: Reinstated 설치 중…"
+  ],
+  "Select the language used by this installer. Game text and voices are chosen separately.": [
+    "Wähle die Sprache des Installers. Spieltexte und Stimmen werden separat ausgewählt.",
+    "Choisissez la langue de l'installateur. Les textes et les voix du jeu se choisissent séparément.",
+    "Scegli la lingua dell'installazione. Testi e voci del gioco si selezionano separatamente.",
+    "Elige el idioma del instalador. Los textos y las voces del juego se eligen por separado.",
+    "インストーラーの言語を選択します。ゲームの表示言語と音声は個別に選択できます。",
+    "選擇安裝程式使用的語言。遊戲文字與語音可分別設定。",
+    "설치 프로그램에서 사용할 언어를 선택하세요. 게임 표시 언어와 음성은 별도로 선택합니다."
+  ],
+  "The game disc is verified before installation. You can supply an ISO directly or choose an extracted game folder.": [
+    "Die Disc wird vor der Installation geprüft. Wähle eine ISO-Datei oder einen entpackten Spielordner.",
+    "Le disque est vérifié avant l'installation. Choisissez une ISO ou un dossier de jeu extrait.",
+    "Il disco viene verificato prima dell'installazione. Scegli una ISO o una cartella del gioco estratta.",
+    "El disco se verifica antes de instalar. Puedes elegir una ISO o una carpeta del juego extraída.",
+    "インストール前にディスクを検証します。ISO または展開済みのゲームフォルダーを選択してください。",
+    "安裝前會驗證遊戲光碟。您可以直接提供 ISO，或選擇已解壓縮的遊戲資料夾。",
+    "설치 전에 게임 디스크를 확인합니다. ISO를 직접 선택하거나 추출된 게임 폴더를 지정할 수 있습니다."
+  ],
+  "Title Update 3, DLC, extra languages and the Bonus DVD are optional.": [
+    "Titel-Update 3, DLC, weitere Sprachen und Bonus-DVD sind optional.",
+    "La mise à jour 3, les DLC, les langues supplémentaires et le DVD bonus sont facultatifs.",
+    "L'aggiornamento 3, i DLC, le lingue extra e il DVD bonus sono facoltativi.",
+    "La actualización 3, los DLC, los idiomas adicionales y el DVD extra son opcionales.",
+    "アップデート 3、DLC、追加言語、ボーナス DVD は任意です。",
+    "Title Update 3、DLC、其他語言與附贈 DVD 均為選用項目。",
+    "타이틀 업데이트 3, DLC, 추가 언어, 보너스 DVD는 선택 사항입니다."
+  ],
+  "Add Map Pack One and/or Map Pack Two from your own Xbox 360 content. Select the content packages, ZIP files or folders containing them.": [
+    "Füge Map Pack One und/oder Map Pack Two aus deinen Xbox-360-Inhalten hinzu. Wähle Inhaltspakete, ZIP-Dateien oder die Ordner, die sie enthalten.",
+    "Ajoutez Map Pack One et/ou Map Pack Two depuis vos contenus Xbox 360. Sélectionnez les paquets, leurs ZIP ou leurs dossiers.",
+    "Aggiungi Map Pack One e/o Map Pack Two dai tuoi contenuti Xbox 360. Seleziona i pacchetti, i file ZIP o le cartelle che li contengono.",
+    "Añade Map Pack One y/o Map Pack Two desde tus contenidos de Xbox 360. Selecciona los paquetes, archivos ZIP o carpetas que los contienen.",
+    "所有する Xbox 360 コンテンツから Map Pack One または Two を追加します。パッケージ、ZIP、またはそれらを含むフォルダーを選択してください。",
+    "從您擁有的 Xbox 360 內容加入 Map Pack One 或 Map Pack Two。請選擇內容套件、ZIP 檔案或包含這些內容的資料夾。",
+    "보유한 Xbox 360 콘텐츠에서 Map Pack One 또는 Map Pack Two를 추가하세요. 콘텐츠 패키지, ZIP 파일 또는 해당 파일이 있는 폴더를 선택하세요."
+  ],
+  "Keep English or add other display languages, including Japanese, Chinese and Korean to switch to in game": [
+    "Behalte Englisch oder füge weitere Textsprachen wie Japanisch, Chinesisch und Koreanisch hinzu, um im Spiel zwischen ihnen zu wechseln.",
+    "Gardez l'anglais ou ajoutez d'autres langues d'affichage, dont le japonais, le chinois et le coréen, pour en changer dans le jeu.",
+    "Mantieni l'inglese o aggiungi altre lingue per i testi, tra cui giapponese, cinese e coreano, da selezionare nel gioco.",
+    "Mantén el inglés o añade otros idiomas para los textos, incluidos japonés, chino y coreano, para cambiar entre ellos dentro del juego.",
+    "英語のままにするか、日本語、中国語、韓国語などの表示言語を追加して、ゲーム内で切り替えられます。",
+    "保留英文，或加入日文、中文、韓文等顯示語言，以便在遊戲中切換",
+    "영어를 유지하거나 일본어, 중국어, 한국어 등의 표시 언어를 추가하여 게임에서 전환할 수 있습니다"
+  ],
+  "Select one or more voice languages, or all of them. English, French and Latin American Spanish are on the US disc.": [
+    "Wähle eine, mehrere oder alle Sprachausgaben. Englisch, Französisch und lateinamerikanisches Spanisch sind auf der US-Disc enthalten.",
+    "Choisissez un, plusieurs ou tous les doublages. L'anglais, le français et l'espagnol latino-américain sont sur le disque américain.",
+    "Scegli uno, più o tutti i doppiaggi. Inglese, francese e spagnolo latinoamericano sono sul disco USA.",
+    "Elige uno, varios o todos los doblajes. El disco de EE. UU. incluye inglés, francés y español latinoamericano.",
+    "音声言語を一つ、複数、またはすべて選べます。英語、フランス語、中南米スペイン語は US ディスクに含まれます。",
+    "您可以選擇一種、多種或所有語音語言。美國版光碟包含英文、法文與拉丁美洲西班牙文。",
+    "음성 언어를 하나 이상 또는 모두 선택하세요. 미국판 디스크에는 영어, 프랑스어, 라틴 아메리카 스페인어가 포함되어 있습니다."
+  ],
+  "Default voice language": [
+    "Standard-Sprachausgabe",
+    "Doublage par défaut",
+    "Doppiaggio predefinito",
+    "Doblaje predeterminado",
+    "既定の音声言語",
+    "預設語音語言",
+    "기본 음성 언어"
+  ],
+  "Default display language": [
+    "Standard-Textsprache",
+    "Langue d'affichage par défaut",
+    "Lingua dei testi predefinita",
+    "Idioma de texto predeterminado",
+    "既定の表示言語",
+    "預設顯示語言",
+    "기본 표시 언어"
+  ],
+  "Regional sources: Europe (En,Fr,De), Europe (En,Es,It), or Japan/Korea (En,Ja,Zh,Ko). Add the matching Perfect Dark Zero ISO or extracted folder.": [
+    "Regionale Quellen: Europa (En,Fr,De), Europa (En,Es,It) oder Japan/Korea (En,Ja,Zh,Ko). Füge die passende Perfect Dark Zero ISO oder den entpackten Ordner hinzu.",
+    "Sources régionales : Europe (En,Fr,De), Europe (En,Es,It) ou Japon/Corée (En,Ja,Zh,Ko). Ajoutez l'ISO ou le dossier extrait de Perfect Dark Zero correspondant.",
+    "Sorgenti regionali: Europa (En,Fr,De), Europa (En,Es,It) o Giappone/Corea (En,Ja,Zh,Ko). Aggiungi la ISO o la cartella estratta di Perfect Dark Zero corrispondente.",
+    "Fuentes regionales: Europa (En,Fr,De), Europa (En,Es,It) o Japón/Corea (En,Ja,Zh,Ko). Añade la ISO o carpeta extraída de Perfect Dark Zero correspondiente.",
+    "対応ディスク：欧州版 (En,Fr,De)、欧州版 (En,Es,It)、日本・韓国版 (En,Ja,Zh,Ko)。必要な Perfect Dark Zero の ISO または展開済みフォルダーを追加してください。",
+    "地區版本來源：歐洲版 (En,Fr,De)、歐洲版 (En,Es,It) 或日韓版 (En,Ja,Zh,Ko)。請加入對應的 Perfect Dark Zero ISO 或已解壓縮的資料夾。",
+    "지역별 원본: 유럽판 (En,Fr,De), 유럽판 (En,Es,It), 일본/한국판 (En,Ja,Zh,Ko). 해당하는 Perfect Dark Zero ISO 또는 추출된 폴더를 추가하세요."
+  ],
+  "Perfect Dark Zero Bonus DVD ISO or ZIP": [
+    "Perfect Dark Zero Bonus-DVD als ISO oder ZIP",
+    "ISO ou ZIP du DVD bonus Perfect Dark Zero",
+    "ISO o ZIP del DVD bonus Perfect Dark Zero",
+    "ISO o ZIP del DVD extra de Perfect Dark Zero",
+    "Perfect Dark Zero ボーナス DVD の ISO または ZIP",
+    "Perfect Dark Zero 附贈 DVD 的 ISO 或 ZIP",
+    "Perfect Dark Zero 보너스 DVD ISO 또는 ZIP"
+  ],
+  "This is the separate Bonus DVD, not the Limited Edition game disc. You can skip it.": [
+    "Gemeint ist die separate Bonus-DVD, nicht die Spiel-Disc der Limited Edition. Dieser Schritt ist optional.",
+    "Il s'agit du DVD bonus séparé, pas du disque de jeu Limited Edition. Vous pouvez passer cette étape.",
+    "Si tratta del DVD bonus separato, non del disco di gioco Limited Edition. Puoi saltare questo passaggio.",
+    "Es el DVD extra separado, no el disco del juego de la edición limitada. Puedes omitirlo.",
+    "限定版のゲームディスクではなく、別のボーナス DVD です。スキップすることもできます。",
+    "此處指獨立的附贈 DVD，而非典藏版遊戲光碟。您可以略過此步驟。",
+    "한정판 게임 디스크가 아닌 별도의 보너스 DVD입니다. 이 단계는 건너뛸 수 있습니다."
+  ],
+  "Watch the bonus videos in the included PC viewer. Xbox controller: D-pad to move, A to play, B to return, Start to pause. Keyboard controls are also available.": [
+    "Sieh die Bonusvideos im mitgelieferten PC-Player an. Xbox-Controller: Steuerkreuz zum Navigieren, A zum Abspielen, B zurück, Start zum Pausieren. Tastatursteuerung ist ebenfalls verfügbar.",
+    "Regardez les vidéos bonus avec le lecteur PC inclus. Manette Xbox : croix pour naviguer, A pour lire, B pour revenir, Start pour mettre en pause. Le clavier est aussi pris en charge.",
+    "Guarda i video bonus nel lettore PC incluso. Controller Xbox: croce per navigare, A per riprodurre, B per tornare, Start per la pausa. È supportata anche la tastiera.",
+    "Mira los vídeos extra en el reproductor de PC incluido. Mando Xbox: cruceta para moverse, A para reproducir, B para volver y Start para pausar. También admite teclado.",
+    "付属の PC ビューアーでボーナス動画を再生します。Xbox コントローラー：方向パッドで移動、A で再生、B で戻る、Start で一時停止。キーボードも使用できます。",
+    "使用隨附的電腦播放器觀看附贈影片。Xbox 控制器：方向鍵移動、A 播放、B 返回、Start 暫停。也可以使用鍵盤操作。",
+    "포함된 PC 뷰어에서 보너스 영상을 감상하세요. Xbox 컨트롤러: 방향 패드로 이동, A로 재생, B로 돌아가기, Start로 일시 정지. 키보드 조작도 지원합니다."
+  ],
+  "The original Xbox 360 bonus menu is not ported. The disc's files are preserved, and its videos are available in the PC viewer.": [
+    "Das originale Xbox-360-Bonusmenü ist nicht portiert. Die Disc-Dateien bleiben erhalten; die Videos sind im PC-Player verfügbar.",
+    "Le menu bonus Xbox 360 original n'est pas porté. Les fichiers du disque sont conservés et les vidéos sont accessibles dans le lecteur PC.",
+    "Il menu bonus originale Xbox 360 non è stato convertito. I file del disco vengono conservati e i video sono disponibili nel lettore PC.",
+    "El menú extra original de Xbox 360 no está adaptado. Se conservan los archivos del disco y los vídeos se pueden ver en el reproductor de PC.",
+    "Xbox 360 のオリジナルメニューは移植されていません。ディスクのファイルは保存され、動画は PC ビューアーで再生できます。",
+    "原本的 Xbox 360 附贈光碟選單尚未移植。光碟檔案會保留，影片可在電腦播放器中觀看。",
+    "Xbox 360의 원래 보너스 메뉴는 이식되지 않았습니다. 디스크 파일은 보존되며 영상은 PC 뷰어에서 볼 수 있습니다."
+  ],
+  "Choose a new folder for Perfect Dark Zero: Reinstated.": [
+    "Wähle einen neuen Ordner für Perfect Dark Zero: Reinstated.",
+    "Choisissez un nouveau dossier pour Perfect Dark Zero: Reinstated.",
+    "Scegli una nuova cartella per Perfect Dark Zero: Reinstated.",
+    "Elige una carpeta nueva para Perfect Dark Zero: Reinstated.",
+    "Perfect Dark Zero: Reinstated 用の新しいフォルダーを選択してください。",
+    "為 Perfect Dark Zero: Reinstated 選擇新的資料夾。",
+    "Perfect Dark Zero: Reinstated를 설치할 새 폴더를 선택하세요."
+  ],
+  "The space check includes the recomp mod, game files, selected add-ons and languages, plus the Bonus DVD if selected.": [
+    "Die Speicherprüfung berücksichtigt Mod, Spieldateien, ausgewählte Erweiterungen und Sprachen sowie gegebenenfalls die Bonus-DVD.",
+    "La vérification inclut le mod, le jeu, les extensions et langues choisies, ainsi que le DVD bonus s'il est sélectionné.",
+    "Il controllo include mod, gioco, contenuti e lingue selezionati, oltre al DVD bonus se scelto.",
+    "La comprobación incluye el mod, el juego, los complementos e idiomas elegidos y el DVD extra si se selecciona.",
+    "空き容量の確認には、MOD、ゲーム、選択した追加コンテンツと言語、ボーナス DVD が含まれます。",
+    "空間檢查包含重編譯模組、遊戲檔案、所選的附加內容與語言，以及選用的附贈 DVD。",
+    "공간 확인에는 재컴파일 모드, 게임 파일, 선택한 추가 콘텐츠와 언어, 선택 시 보너스 DVD가 포함됩니다."
+  ],
+  "Recomp mod": [
+    "Recomp-Mod",
+    "Mod recompilé",
+    "Mod ricompilata",
+    "Mod recompilado",
+    "Recomp MOD",
+    "重編譯模組",
+    "재컴파일 모드"
+  ],
+  "Total installation": [
+    "Gesamte Installation",
+    "Installation totale",
+    "Installazione totale",
+    "Instalación total",
+    "インストール合計",
+    "安裝總大小",
+    "전체 설치 용량"
+  ],
+  "Free disk space": [
+    "Freier Speicher",
+    "Espace disque libre",
+    "Spazio libero",
+    "Espacio libre",
+    "ディスク空き容量",
+    "磁碟可用空間",
+    "사용 가능한 디스크 공간"
+  ],
+  "Checking your game, add-ons and available disk space…": [
+    "Spiel, Erweiterungen und freien Speicher prüfen…",
+    "Vérification du jeu, des extensions et de l'espace libre…",
+    "Verifica di gioco, contenuti e spazio disponibile…",
+    "Comprobando juego, complementos y espacio disponible…",
+    "ゲーム、追加コンテンツ、空き容量を確認中…",
+    "正在檢查遊戲、附加內容與磁碟可用空間…",
+    "게임, 추가 콘텐츠, 사용 가능한 디스크 공간 확인 중…"
+  ],
+  "Ready to install.": [
+    "Bereit zur Installation.",
+    "Prêt à installer.",
+    "Pronto per l'installazione.",
+    "Listo para instalar.",
+    "インストールの準備ができました。",
+    "已準備好安裝。",
+    "설치할 준비가 되었습니다."
+  ],
+  "Your game is ready. The launcher is in your installation folder.": [
+    "Das Spiel ist bereit. Der Launcher befindet sich im Installationsordner.",
+    "Votre jeu est prêt. Le lanceur est dans le dossier d'installation.",
+    "Il gioco è pronto. Il programma di avvio si trova nella cartella di installazione.",
+    "El juego está listo. El lanzador está en la carpeta de instalación.",
+    "ゲームの準備ができました。起動ファイルはインストール先にあります。",
+    "遊戲已準備就緒。啟動程式位於安裝資料夾中。",
+    "게임이 준비되었습니다. 실행 파일은 설치 폴더에 있습니다."
+  ],
+  "Play Perfect Dark Zero": [
+    "Perfect Dark Zero spielen",
+    "Jouer à Perfect Dark Zero",
+    "Gioca a Perfect Dark Zero",
+    "Jugar a Perfect Dark Zero",
+    "Perfect Dark Zero を起動",
+    "啟動 Perfect Dark Zero",
+    "Perfect Dark Zero 실행"
+  ],
+  "Play Bonus DVD": [
+    "Bonus-DVD öffnen",
+    "Lire le DVD bonus",
+    "Apri DVD bonus",
+    "Abrir DVD extra",
+    "ボーナス DVD を開く",
+    "播放附贈 DVD",
+    "보너스 DVD 재생"
+  ],
+  "Open installation folder": [
+    "Installationsordner öffnen",
+    "Ouvrir le dossier d'installation",
+    "Apri cartella di installazione",
+    "Abrir carpeta de instalación",
+    "インストール先を開く",
+    "開啟安裝資料夾",
+    "설치 폴더 열기"
+  ],
+  "The source files were kept. Check the message above, then return to the space check to try again.": [
+    "Die Quelldateien bleiben erhalten. Prüfe die Meldung und kehre zur Speicherprüfung zurück, um es erneut zu versuchen.",
+    "Les fichiers sources sont conservés. Consultez le message puis revenez à la vérification de l'espace pour réessayer.",
+    "I file sorgenti sono stati conservati. Controlla il messaggio, poi torna alla verifica dello spazio per riprovare.",
+    "Se conservaron los archivos originales. Revisa el mensaje y vuelve a la comprobación de espacio para reintentar.",
+    "元のファイルは保持されています。メッセージを確認し、空き容量の確認へ戻って再試行してください。",
+    "原始檔案已保留。請查看上方訊息，再返回空間檢查畫面重試。",
+    "원본 파일은 보존되었습니다. 위 메시지를 확인한 뒤 공간 확인 화면으로 돌아가 다시 시도하세요."
+  ],
+  "Try again": [
+    "Erneut versuchen",
+    "Réessayer",
+    "Riprova",
+    "Reintentar",
+    "再試行",
+    "重試",
+    "다시 시도"
+  ],
+  "Replay": [
+    "Erneut abspielen",
+    "Revoir",
+    "Rivedi",
+    "Repetir",
+    "もう一度見る",
+    "重新播放",
+    "다시 보기"
+  ],
+  "Music: On": [
+    "Musik: An",
+    "Musique : Oui",
+    "Musica: Sì",
+    "Música: Sí",
+    "音楽：オン",
+    "音樂：開",
+    "음악: 켜짐"
+  ],
+  "Music: Off": [
+    "Musik: Aus",
+    "Musique : Non",
+    "Musica: No",
+    "Música: No",
+    "音楽：オフ",
+    "音樂：關",
+    "음악: 꺼짐"
+  ],
+  "Installer language": [
+    "Installersprache",
+    "Langue de l'installateur",
+    "Lingua di installazione",
+    "Idioma del instalador",
+    "インストーラーの言語",
+    "安裝程式語言",
+    "설치 프로그램 언어"
+  ],
+  "Welcome": [
+    "Willkommen",
+    "Bienvenue",
+    "Benvenuto",
+    "Bienvenida",
+    "ようこそ",
+    "簡介",
+    "소개"
+  ],
+  "Game & title update": [
+    "Spiel & Titel-Update",
+    "Jeu et mise à jour",
+    "Gioco e aggiornamento",
+    "Juego y actualización",
+    "ゲームとアップデート",
+    "遊戲與遊戲更新",
+    "게임 및 타이틀 업데이트"
+  ],
+  "Downloadable content": [
+    "Zusatzinhalte",
+    "Contenu téléchargeable",
+    "Contenuti scaricabili",
+    "Contenido descargable",
+    "追加コンテンツ",
+    "下載內容",
+    "다운로드 콘텐츠"
+  ],
+  "Display languages": [
+    "Textsprachen",
+    "Langues d'affichage",
+    "Lingue dei testi",
+    "Idiomas de texto",
+    "表示言語",
+    "顯示語言",
+    "표시 언어"
+  ],
+  "Voice languages": [
+    "Sprachausgaben",
+    "Doublages",
+    "Doppiaggi",
+    "Doblajes",
+    "音声言語",
+    "語音語言",
+    "음성 언어"
+  ],
+  "Bonus DVD": [
+    "Bonus-DVD",
+    "DVD bonus",
+    "DVD bonus",
+    "DVD extra",
+    "ボーナス DVD",
+    "附贈 DVD",
+    "보너스 DVD"
+  ],
+  "Installation folder": [
+    "Installationsordner",
+    "Dossier d'installation",
+    "Cartella di installazione",
+    "Carpeta de instalación",
+    "インストール先",
+    "安裝資料夾",
+    "설치 폴더"
+  ],
+  "Installing": [
+    "Installation läuft",
+    "Installation",
+    "Installazione",
+    "Instalando",
+    "インストール中",
+    "正在安裝",
+    "설치 중"
+  ],
+  "Installation result": [
+    "Installationsergebnis",
+    "Résultat de l'installation",
+    "Risultato dell'installazione",
+    "Resultado de la instalación",
+    "インストール結果",
+    "安裝結果",
+    "설치 결과"
+  ],
+  "The comics": [
+    "Die Comics",
+    "Les bandes dessinées",
+    "I fumetti",
+    "Los cómics",
+    "コミック",
+    "漫畫",
+    "만화"
+  ],
+  "Estimating time remaining…": [
+    "Restzeit wird geschätzt…",
+    "Estimation du temps restant…",
+    "Calcolo del tempo rimanente…",
+    "Calculando el tiempo restante…",
+    "残り時間を計算中…",
+    "正在估算剩餘時間…",
+    "남은 시간 계산 중…"
+  ],
+  "Estimated time remaining": [
+    "Geschätzte Restzeit",
+    "Temps restant estimé",
+    "Tempo rimanente stimato",
+    "Tiempo restante estimado",
+    "推定残り時間",
+    "預估剩餘時間",
+    "예상 남은 시간"
+  ],
+  "Preparing…": [
+    "Vorbereitung…",
+    "Préparation…",
+    "Preparazione…",
+    "Preparando…",
+    "準備中…",
+    "正在準備…",
+    "준비 중…"
+  ],
+  "This is Perfect Dark Zero: Reinstated!": [
+    "Das ist Perfect Dark Zero: Reinstated!",
+    "Voici Perfect Dark Zero: Reinstated !",
+    "Questo è Perfect Dark Zero: Reinstated!",
+    "¡Esto es Perfect Dark Zero: Reinstated!",
+    "これが Perfect Dark Zero: Reinstated です！",
+    "這就是 Perfect Dark Zero: Reinstated！",
+    "이것이 Perfect Dark Zero: Reinstated입니다!"
+  ],
+  "Pause Scroll": [
+    "Scrollen pausieren",
+    "Pause défilement",
+    "Pausa scorrimento",
+    "Pausar desplazamiento",
+    "スクロールを一時停止",
+    "暫停捲動",
+    "스크롤 일시 정지"
+  ],
+  "Resume Scroll": [
+    "Weiter scrollen",
+    "Reprendre défilement",
+    "Riprendi scorrimento",
+    "Reanudar desplazamiento",
+    "スクロールを再開",
+    "繼續捲動",
+    "스크롤 재개"
+  ],
+  "Replay Scroll": [
+    "Erneut scrollen",
+    "Relire le texte",
+    "Rileggi",
+    "Volver al inicio",
+    "最初からスクロール",
+    "從頭捲動",
+    "처음부터 스크롤"
+  ],
+  "Pause": [
+    "Pause",
+    "Pause",
+    "Pausa",
+    "Pausa",
+    "一時停止",
+    "暫停",
+    "일시 정지"
+  ],
+  "Resume": [
+    "Fortsetzen",
+    "Reprendre",
+    "Riprendi",
+    "Reanudar",
+    "再開",
+    "繼續",
+    "재개"
+  ],
+  "Back to gallery": [
+    "Zur Galerie",
+    "Retour à la galerie",
+    "Torna alla galleria",
+    "Volver a la galería",
+    "ギャラリーに戻る",
+    "返回圖庫",
+    "갤러리로 돌아가기"
+  ],
+  "Fit page": [
+    "Seite einpassen",
+    "Ajuster la page",
+    "Adatta pagina",
+    "Ajustar página",
+    "ページ全体",
+    "符合頁面大小",
+    "페이지에 맞추기"
+  ],
+  "Read comic page": [
+    "Comicseite lesen",
+    "Lire la page",
+    "Leggi pagina",
+    "Leer página",
+    "コミックのページを読む",
+    "閱讀漫畫頁面",
+    "만화 페이지 읽기"
+  ],
+  "Click to pause and read full-screen": [
+    "Klicken zum Pausieren und Lesen im Vollbild",
+    "Cliquez pour mettre en pause et lire en plein écran",
+    "Clicca per mettere in pausa e leggere a schermo intero",
+    "Haz clic para pausar y leer a pantalla completa",
+    "クリックすると一時停止して全画面で読めます",
+    "點擊即可暫停並以全螢幕閱讀",
+    "클릭하면 일시 정지하고 전체 화면으로 읽습니다"
+  ],
+  "Click a picture to pause and read full-screen. Space pauses / resumes.": [
+    "Klicke ein Bild an, um zu pausieren und im Vollbild zu lesen. Leertaste: Pause / Fortsetzen.",
+    "Cliquez sur une image pour mettre en pause et lire en plein écran. Espace : pause / reprise.",
+    "Clicca un’immagine per mettere in pausa e leggere a schermo intero. Spazio: pausa / riprendi.",
+    "Haz clic en una imagen para pausar y leer a pantalla completa. Espacio: pausa / reanudar.",
+    "画像をクリックすると一時停止して全画面で読めます。スペースキーで一時停止・再開。",
+    "點擊圖片即可暫停並以全螢幕閱讀。空白鍵可暫停或繼續。",
+    "그림을 클릭하면 일시 정지하고 전체 화면으로 읽습니다. 스페이스바: 일시 정지 / 재개."
+  ],
+  "Scroll to read • Esc to return": [
+    "Scrollen zum Lesen • Esc: Zurück",
+    "Défilez pour lire • Échap : retour",
+    "Scorri per leggere • Esc: torna",
+    "Desplázate para leer • Esc: volver",
+    "スクロールして読む • Esc で戻る",
+    "捲動以閱讀 • Esc 返回",
+    "스크롤하여 읽기 • Esc로 돌아가기"
+  ],
+  "Are you a Modern Agent, an Old School Agent, or an OG Dark Zero Agent?": [
+    "Bist du ein moderner Agent, ein Agent der alten Schule oder ein originaler Dark-Zero-Agent?",
+    "Êtes-vous un agent moderne, un agent à l’ancienne ou un agent Dark Zero des origines ?",
+    "Sei un agente moderno, un agente vecchia scuola o un agente Dark Zero delle origini?",
+    "¿Eres un agente moderno, un agente de la vieja escuela o un agente Dark Zero original?",
+    "あなたはモダンなエージェント、昔ながらのエージェント、それとも初代 Dark Zero のエージェント？",
+    "您是現代特務、老派特務，還是最初的 Dark Zero 特務？",
+    "당신은 모던 요원인가요, 올드스쿨 요원인가요, 아니면 원조 Dark Zero 요원인가요?"
+  ],
+  "Perfect Dark Zero: Reinstated Title Update fixes broken music that is present in the Limited Edition, Rare Replay, and Official Xbox 360/XBone Title Update versions": [
+    "Das Perfect Dark Zero: Reinstated Titel-Update behebt die Musikfehler der Limited Edition, von Rare Replay und der offiziellen Xbox-360/XBone-Titel-Update-Version.",
+    "La mise à jour Perfect Dark Zero: Reinstated corrige les problèmes de musique présents dans la Limited Edition, Rare Replay et la version avec mise à jour officielle Xbox 360/XBone.",
+    "L’aggiornamento Perfect Dark Zero: Reinstated corregge i problemi musicali presenti nella Limited Edition, in Rare Replay e nella versione con aggiornamento ufficiale Xbox 360/XBone.",
+    "La actualización de Perfect Dark Zero: Reinstated corrige los problemas de música de Limited Edition, Rare Replay y la versión con actualización oficial de Xbox 360/XBone.",
+    "Perfect Dark Zero: Reinstated のタイトルアップデートは、限定版、Rare Replay、公式 Xbox 360/XBone タイトルアップデート版にある音楽の不具合を修正します。",
+    "Perfect Dark Zero: Reinstated 遊戲更新修正了典藏版、Rare Replay 與官方 Xbox 360/XBone 遊戲更新版本中的音樂問題。",
+    "Perfect Dark Zero: Reinstated 타이틀 업데이트는 한정판, Rare Replay, 공식 Xbox 360/XBone 타이틀 업데이트 버전의 음악 문제를 수정합니다."
+  ],
+  "We aim to make the game more modern for its time and make it more playable to fans who disliked the more Hardcore semi Tactical shooter nature of the game, and not play like its past counterparts like GE & PD. This Enhancement fixes that while preserving the original games concept. While adding.......New Stuff. Want a hint? Ok.": [
+    "Wir möchten das Spiel für seine Zeit moderner gestalten und für Fans zugänglicher machen, denen der anspruchsvolle, teils taktische Shooter-Stil und die Abweichung von den Vorgängern GE & PD nicht gefielen. Diese Erweiterung ändert das und bewahrt dabei das ursprüngliche Spielkonzept. Dazu kommt....... Neues. Du willst einen Hinweis? Okay.",
+    "Nous voulons moderniser le jeu pour son époque et le rendre plus accessible aux fans qui n’aimaient pas son approche de jeu de tir exigeant et semi-tactique, différente de ses prédécesseurs GE & PD. Cette amélioration y remédie tout en préservant le concept original du jeu. Et en ajoutant....... De nouvelles choses. Vous voulez un indice ? D’accord.",
+    "Vogliamo rendere il gioco più moderno per la sua epoca e più accessibile ai fan che non apprezzavano il suo stile da sparatutto impegnativo e semi-tattico, diverso dai predecessori GE & PD. Questa miglioria interviene su questi aspetti preservando il concetto originale del gioco. E aggiungendo....... Cose nuove. Vuoi un indizio? Va bene.",
+    "Queremos modernizar el juego para su época y hacerlo más accesible a los fans que no disfrutaban de su estilo de disparos exigente y semitáctico, diferente al de sus predecesores GE & PD. Esta mejora lo corrige preservando el concepto original del juego. Y añadiendo....... Cosas nuevas. ¿Quieres una pista? Vale.",
+    "このゲームを当時の作品としてよりモダンにし、GE や PD のような前作とは異なる、ハードコアで半ばタクティカルなシューティングという性格が苦手だったファンにも遊びやすくすることを目指しています。この拡張はオリジナルのコンセプトを保ちながら、その点を改善します。さらに.......新しい要素も。ヒントが欲しい？ いいでしょう。",
+    "我們希望讓這款遊戲以當時的標準來說更現代化，並讓不喜歡其硬派、半戰術射擊風格，以及它與 GE、PD 等前作不同玩法的玩家也能更容易上手。這項強化在保留原作概念的同時改善了這些部分，還加入了……新東西。想要提示嗎？好吧。",
+    "이 게임을 당시 기준으로 더 현대적으로 만들고, GE나 PD 같은 전작들과 달리 하드코어하고 반쯤 전술적인 슈팅 게임의 성격을 좋아하지 않았던 팬들도 더 편하게 즐길 수 있도록 하는 것이 목표입니다. 이 개선판은 원작의 콘셉트를 보존하면서 그 부분을 개선합니다. 그리고....... 새로운 것들도 추가합니다. 힌트를 원하나요? 좋습니다."
+  ],
+  "Open Perfect Dark Zero in the Xbox Store": [
+    "Perfect Dark Zero im Xbox Store öffnen",
+    "Ouvrir Perfect Dark Zero dans le Xbox Store",
+    "Apri Perfect Dark Zero nello Xbox Store",
+    "Abrir Perfect Dark Zero en Xbox Store",
+    "Xbox ストアで Perfect Dark Zero を開く",
+    "在 Xbox 商店開啟 Perfect Dark Zero",
+    "Xbox 스토어에서 Perfect Dark Zero 열기"
+  ],
+  "SFX: On": [
+    "SFX: An",
+    "SFX : Oui",
+    "SFX: Sì",
+    "Efectos: Sí",
+    "効果音：オン",
+    "音效：開",
+    "효과음: 켜짐"
+  ],
+  "SFX: Off": [
+    "SFX: Aus",
+    "SFX : Non",
+    "SFX: No",
+    "Efectos: No",
+    "効果音：オフ",
+    "音效：關",
+    "효과음: 꺼짐"
+  ],
+  "Installer": [
+    "Installer",
+    "Installateur",
+    "Installazione",
+    "Instalador",
+    "インストーラー",
+    "安裝程式",
+    "설치 프로그램"
+  ],
+  "MOUSE  Select     TAB  Move     ENTER  Confirm     ESC  Back": [
+    "MAUS Wählen   TAB Wechseln   ENTER Bestätigen   ESC Zurück",
+    "SOURIS Choisir   TAB Déplacer   ENTRÉE Confirmer   ÉCHAP Retour",
+    "MOUSE Seleziona   TAB Sposta   INVIO Conferma   ESC Indietro",
+    "RATÓN Elegir   TAB Mover   ENTER Confirmar   ESC Volver",
+    "マウス 選択   TAB 移動   ENTER 決定   ESC 戻る",
+    "滑鼠 選取     TAB 移動     ENTER 確認     ESC 返回",
+    "마우스 선택     TAB 이동     ENTER 확인     ESC 뒤로"
+  ],
+  "Title update: skipped": [
+    "Title update: skipped",
+    "Title update: skipped",
+    "Title update: skipped",
+    "Title update: skipped",
+    "Title update: skipped",
+    "遊戲更新：已略過",
+    "타이틀 업데이트: 건너뜀"
+  ],
+  "Select your original US retail game ISO or extracted folder.": [
+    "Select your original US retail game ISO or extracted folder.",
+    "Select your original US retail game ISO or extracted folder.",
+    "Select your original US retail game ISO or extracted folder.",
+    "Select your original US retail game ISO or extracted folder.",
+    "Select your original US retail game ISO or extracted folder.",
+    "請選擇初版美國零售版遊戲 ISO 或已解壓縮的資料夾。",
+    "최초 미국 일반 판매판 게임 ISO 또는 추출된 폴더를 선택하세요."
+  ],
+  "Choose a folder": [
+    "Choose a folder",
+    "Choose a folder",
+    "Choose a folder",
+    "Choose a folder",
+    "Choose a folder",
+    "選擇資料夾",
+    "폴더 선택"
+  ],
+  "Cancelling after the current file operation…": [
+    "Cancelling after the current file operation…",
+    "Cancelling after the current file operation…",
+    "Cancelling after the current file operation…",
+    "Cancelling after the current file operation…",
+    "Cancelling after the current file operation…",
+    "目前的檔案作業完成後即會取消…",
+    "현재 파일 작업이 끝나면 취소합니다…"
+  ],
+  "Installing and verifying the recomp mod": [
+    "Installing and verifying the recomp mod",
+    "Installing and verifying the recomp mod",
+    "Installing and verifying the recomp mod",
+    "Installing and verifying the recomp mod",
+    "Installing and verifying the recomp mod",
+    "正在安裝與驗證重編譯模組",
+    "재컴파일 모드 설치 및 검증 중"
+  ],
+  "Time remaining appears here during installation.": [
+    "Time remaining appears here during installation.",
+    "Time remaining appears here during installation.",
+    "Time remaining appears here during installation.",
+    "Time remaining appears here during installation.",
+    "Time remaining appears here during installation.",
+    "安裝時會在此顯示剩餘時間。",
+    "설치 중 남은 시간이 여기에 표시됩니다."
+  ],
+  "Your new installation is ready. (Preview)": [
+    "Your new installation is ready. (Preview)",
+    "Your new installation is ready. (Preview)",
+    "Your new installation is ready. (Preview)",
+    "Your new installation is ready. (Preview)",
+    "Your new installation is ready. (Preview)",
+    "新的安裝已準備就緒。（預覽）",
+    "새 설치가 준비되었습니다. (미리 보기)"
+  ],
+  "Installation cancelled.": [
+    "Installation cancelled.",
+    "Installation cancelled.",
+    "Installation cancelled.",
+    "Installation cancelled.",
+    "Installation cancelled.",
+    "已取消安裝。",
+    "설치가 취소되었습니다."
+  ],
+  "Cancelling installation…": [
+    "Cancelling installation…",
+    "Cancelling installation…",
+    "Cancelling installation…",
+    "Cancelling installation…",
+    "Cancelling installation…",
+    "正在取消安裝…",
+    "설치 취소 중…"
+  ],
+  "Please wait for the source check to finish.": [
+    "Please wait for the source check to finish.",
+    "Please wait for the source check to finish.",
+    "Please wait for the source check to finish.",
+    "Please wait for the source check to finish.",
+    "Please wait for the source check to finish.",
+    "請等候來源檢查完成。",
+    "원본 확인이 완료될 때까지 기다려 주세요."
+  ],
+  "Installing display and voice languages": [
+    "Installing display and voice languages",
+    "Installing display and voice languages",
+    "Installing display and voice languages",
+    "Installing display and voice languages",
+    "Installing display and voice languages",
+    "正在安裝顯示與語音語言",
+    "표시 및 음성 언어 설치 중"
+  ],
+  "Installing the recomp mod": [
+    "Installing the recomp mod",
+    "Installing the recomp mod",
+    "Installing the recomp mod",
+    "Installing the recomp mod",
+    "Installing the recomp mod",
+    "正在安裝重編譯模組",
+    "재컴파일 모드 설치 중"
+  ],
+  "Preparing installation": [
+    "Preparing installation",
+    "Preparing installation",
+    "Preparing installation",
+    "Preparing installation",
+    "Preparing installation",
+    "正在準備安裝",
+    "설치 준비 중"
+  ],
+  "Extracting game files": [
+    "Extracting game files",
+    "Extracting game files",
+    "Extracting game files",
+    "Extracting game files",
+    "Extracting game files",
+    "正在解壓縮遊戲檔案",
+    "게임 파일 추출 중"
+  ],
+  "Installing title update": [
+    "Installing title update",
+    "Installing title update",
+    "Installing title update",
+    "Installing title update",
+    "Installing title update",
+    "正在安裝遊戲更新",
+    "타이틀 업데이트 설치 중"
+  ],
+  "Installing map packs": [
+    "Installing map packs",
+    "Installing map packs",
+    "Installing map packs",
+    "Installing map packs",
+    "Installing map packs",
+    "正在安裝地圖包",
+    "맵 팩 설치 중"
+  ],
+  "Installing Bonus DVD content": [
+    "Installing Bonus DVD content",
+    "Installing Bonus DVD content",
+    "Installing Bonus DVD content",
+    "Installing Bonus DVD content",
+    "Installing Bonus DVD content",
+    "正在安裝附贈 DVD 內容",
+    "보너스 DVD 콘텐츠 설치 중"
+  ],
+  "Title Update": [
+    "Titel-Update",
+    "mise à jour",
+    "aggiornamento",
+    "actualización",
+    "タイトルアップデート",
+    "遊戲更新",
+    "타이틀 업데이트"
+  ],
+  "Finishing installation": [
+    "Finishing installation",
+    "Finishing installation",
+    "Finishing installation",
+    "Finishing installation",
+    "Finishing installation",
+    "正在完成安裝",
+    "설치 마무리 중"
+  ]
+}

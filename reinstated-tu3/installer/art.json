@@ -1,0 +1,35 @@
+{
+  "roles": {
+    "language": "art/language.png",
+    "welcome": "art/welcome.png",
+    "game": "art/game.png",
+    "dlc": "art/dlc.png",
+    "display": "art/display.png",
+    "dubs": "art/dubs.png",
+    "bonus": "art/bonus.png",
+    "space": "art/space.png",
+    "install": "art/install.png",
+    "complete": "art/complete.png",
+    "shaders": "art/shaders.png"
+  },
+  "comics": [
+    "art/comic-01.png",
+    "art/comic-02.png",
+    "art/comic-04.png",
+    "art/comic-05.png",
+    "art/comic-06.png",
+    "art/comic-07.png",
+    "art/comic-08.png",
+    "art/comic-09.png",
+    "art/comic-10.png",
+    "art/comic-11.png",
+    "art/comic-12.png",
+    "art/comic-13.png",
+    "art/comic-14.png",
+    "art/comic-15.png"
+  ],
+  "missing": [
+    "C:\\Users\\Owner\\Downloads\\Pg_15_Hong_Kong_Sunrise_.webp",
+    "C:\\Users\\Owner\\Downloads\\JanusTears_3.webp"
+  ]
+}
