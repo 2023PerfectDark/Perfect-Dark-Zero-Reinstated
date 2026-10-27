@@ -60,12 +60,15 @@ if __name__=='__main__':
         for path in files:
             digest=hashlib.file_digest(path.open('rb'),'sha256').hexdigest()
             matches=[a for a in release['assets'] if a['name']==path.name]
-            if matches:
+            if matches and matches[0].get('digest')=='sha256:'+digest:
                 asset=matches[0]
             else:
                 print('Uploading '+path.name,flush=True)
-                asset=upload(release['id'],path,token)
+                asset=upload(release['id'],path,token, path.name+'.verified' if matches else None)
             assert asset['size']==path.stat().st_size and asset.get('digest')=='sha256:'+digest, asset['name']
+            if matches and asset['id']!=matches[0]['id']:
+                request('repos/'+REPO+'/releases/assets/'+str(matches[0]['id']),token,'DELETE')
+                asset=request('repos/'+REPO+'/releases/assets/'+str(asset['id']),token,'PATCH',{'name':path.name})
             uploaded.append(asset)
             print('Verified '+path.name,flush=True)
         body=(root/'staging/v121-release-body.txt').read_text(encoding='utf-8')

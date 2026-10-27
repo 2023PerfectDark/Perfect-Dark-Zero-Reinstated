@@ -3330,8 +3330,8 @@
       "source": "payload/common/mod_assets/updater/update.ps1",
       "destination": "mod_assets/updater/update.ps1",
       "group": "common",
-      "size": 12107,
-      "sha256": "f56fef02a92863b8cfee40e77cbbf5bb89cd62dc2f828e7f9902877bbf7b63c8"
+      "size": 12104,
+      "sha256": "ba7a10187f23bba9f5eb4f39873007b0e51648da77827be5e2fbe939eca9ce09"
     },
     {
       "source": "payload/common/mod_assets/weather/audio/crate1.wav",
@@ -7902,7 +7902,7 @@
       "destination": "mod_assets/updater/source.json",
       "group": "common",
       "size": 296,
-      "sha256": "842e8e4c0c357aee1386c5616a1bfcff83b56e9e5768c43b48b4f8bfc6f13053"
+      "sha256": "0ad381566ebba70417ed481f2be2fa1d21b9b58b135036bad75b28bfd416e1f4"
     }
   ]
 }

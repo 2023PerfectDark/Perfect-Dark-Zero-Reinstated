@@ -37,7 +37,7 @@ for name, settings, binary, releases, expected in cases:
         (path/'releases.json').write_text(json.dumps(releases))
         quote=lambda p: "'"+str(p).replace("'", "''")+"'"
         wrapper=path/'test.ps1'
-        wrapper.write_text("function Invoke-RestMethod { param($Uri,$Headers,$TimeoutSec) Get-Content -Raw "+quote(path/'releases.json')+" | ConvertFrom-Json }\n& "+quote(helper)+" -Action Check -Root "+quote(path))
+        wrapper.write_text("function Invoke-RestMethod { param($Uri,$Headers,$TimeoutSec) Write-Output -NoEnumerate (Get-Content -Raw "+quote(path/'releases.json')+" | ConvertFrom-Json) }\n& "+quote(helper)+" -Action Check -Root "+quote(path))
         result=subprocess.run(['powershell','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',str(wrapper)],capture_output=True,text=True)
         status=(path/'.pdz-update/status.txt').read_text(encoding='utf-8-sig').splitlines()
         assert result.returncode == 0 and status[0] == expected, (name,result.stderr,status)

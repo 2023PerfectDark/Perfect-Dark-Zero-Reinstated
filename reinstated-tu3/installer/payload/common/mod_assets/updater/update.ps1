@@ -117,7 +117,7 @@ try {
   if ($config.repository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' -or $config.asset -notmatch '^[A-Za-z0-9_.-]+\.zip$') { throw 'Invalid update source configuration.' }
   $headers = @{ 'User-Agent'='PDZ-Modded-Recomp-Updater'; Accept='application/vnd.github+json'; 'X-GitHub-Api-Version'='2022-11-28' }
   State 'checking' 0 'Checking for updates...'
-  $releases = @(Invoke-RestMethod -Uri ('https://api.github.com/repos/' + $config.repository + '/releases?per_page=100') -Headers $headers -TimeoutSec 30)
+  $releases = Invoke-RestMethod -Uri ('https://api.github.com/repos/' + $config.repository + '/releases?per_page=100') -Headers $headers -TimeoutSec 30
   # Select only compatible TU3 packages. Old retail updates and installer ZIPs
   # in this repository must never replace the current Reinstated game.
   $release = $releases | Where-Object {
