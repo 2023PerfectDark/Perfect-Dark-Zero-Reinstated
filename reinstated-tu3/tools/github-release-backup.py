@@ -68,7 +68,7 @@ if __name__=='__main__':
             assert asset['size']==path.stat().st_size and asset.get('digest')=='sha256:'+digest, asset['name']
             uploaded.append(asset)
             print('Verified '+path.name,flush=True)
-        body=(root/'staging/v121-release-body.txt').read_text()
+        body=(root/'staging/v121-release-body.txt').read_text(encoding='utf-8')
         request('repos/'+REPO+'/releases/'+str(release['id']),token,'PATCH',
                 {'name':'Perfect Dark Zero Reinstated 1.8 — Installer Update v121',
                  'body':body,'make_latest':'true','draft':False,'prerelease':False})

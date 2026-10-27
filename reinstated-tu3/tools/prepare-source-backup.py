@@ -77,5 +77,5 @@ This is a source backup, not a verified one-command clean-machine build.
 
 `installer/VALIDATION.txt` records test coverage and outstanding gameplay checks.
 v121 fixes updater packaging; its game executable is unchanged from v120.
-''')
+''',encoding='utf-8')
 print(json.dumps({'snapshot':str(dest),'files':len(inventory),'bytes':sum(p.stat().st_size for p in dest.rglob('*') if p.is_file())}))
