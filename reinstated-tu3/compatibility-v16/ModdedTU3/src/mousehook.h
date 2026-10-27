@@ -15,6 +15,7 @@ struct Pointer {
 };
 Pointer MenuPointer();
 void PointerAccept(uint64_t click, uint16_t key = 0x5800);
+void PointerDialogAccept(uint64_t click, uint16_t key);
 void InventoryMenuRendered();
 bool CrosshairVisible();
 bool WeatherVisible(bool cinematic=false);

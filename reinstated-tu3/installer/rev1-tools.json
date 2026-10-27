@@ -1,0 +1,17 @@
+[
+  {
+    "size": 52224,
+    "source": "tools/rev1-image.exe",
+    "sha256": "80956bbb9187d924be93c8a111b96062b1b9d2dcdedc73d46a786f428124bf34"
+  },
+  {
+    "size": 11469312,
+    "source": "tools/rexruntime.dll",
+    "sha256": "4a3b9bf7eb73a86551b34e8227fba3968ecc2342bbb27346d67aa8ea170529af"
+  },
+  {
+    "size": 227498,
+    "source": "tools/rev1-tu3.delta",
+    "sha256": "29f169dbca9d54cbe468d28a350db4df7ac03618782fd885168dab0114499a0f"
+  }
+]

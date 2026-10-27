@@ -8,6 +8,15 @@ parser.add_argument('--name', default='Perfect Dark Zero Reinstated Installer dP
 parser.add_argument('--setup', default='PDZ Setup.exe')
 args = parser.parse_args()
 manifest = json.loads((src / 'payload.json').read_text())
+revision_tools = json.loads((src / 'rev1-tools.json').read_text(encoding='utf-8-sig'))
+if len(revision_tools) != 3 or {r['source'] for r in revision_tools} != {
+        'tools/rev1-image.exe', 'tools/rexruntime.dll', 'tools/rev1-tu3.delta'}:
+    parser.error('Invalid Rev 1 compatibility tools manifest')
+for row in revision_tools:
+    file = src / row['source']
+    if (not file.is_file() or file.stat().st_size != row['size'] or
+            hashlib.sha256(file.read_bytes()).hexdigest() != row['sha256']):
+        parser.error('Rev 1 compatibility tool failed verification: ' + row['source'])
 # Every install needs the helper and its source, even before an update is published.
 for name in ('source.json', 'update.ps1'):
     rows = [r for r in manifest['files'] if r['destination'] == 'mod_assets/updater/' + name]
@@ -67,7 +76,7 @@ dest = src.parent / 'releases' / args.name
 dest.mkdir(exist_ok=False)
 for name in ('art',):
     shutil.copytree(src / name, dest / name)
-for name in ('payload.json', 'retail-index.json', 'text.json', 'README.txt', 'VALIDATION.txt'):
+for name in ('payload.json', 'retail-index.json', 'rev1-index.json', 'rev1-tools.json', 'text.json', 'README.txt', 'VALIDATION.txt'):
     shutil.copy2(src / name, dest / name)
 shutil.copy2(src / args.setup, dest / 'PDZ Setup.exe')
 for item in json.loads((src/'payload.json').read_text())['files']:
@@ -77,7 +86,7 @@ art = json.loads((src / 'art.json').read_text())
 art.pop('missing', None)
 (dest / 'art.json').write_text(json.dumps(art, indent=2), encoding='utf-8')
 (dest / 'tools').mkdir()
-for name in ('extract-xiso.exe', 'LICENSE.TXT'):
+for name in ('extract-xiso.exe', 'LICENSE.TXT', 'rev1-image.exe', 'rexruntime.dll', 'rev1-tu3.delta'):
     shutil.copy2(src / 'tools' / name, dest / 'tools' / name)
 for file in json.loads((dest / 'payload.json').read_text())['files']:
     p = dest / file['source']

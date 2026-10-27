@@ -1,6 +1,14 @@
 PERFECT DARK ZERO: REINSTATED
-Release candidate v121 - 26 October 2026
-TU3 base 1.8; game build v120
+Release v124 - 27 October 2026
+TU3 base 1.8; game build v124
+
+PLAYER-LIST HIGHLIGHTS v123
+Fixes stale gamertag highlights in the multiplayer lobby and Connected
+Players screen. The user confirmed both screens highlight one name at a
+time in the installed build. Targeted host tests cover visual reset,
+selection changes, scrolling/recycled rows, and disabled rows; these
+tests do not replace broader in-game keyboard/click testing.
+Random bot head/body buttons remain a separate unresolved issue.
 
 UPDATER AND PACKAGING v121
 The installer now includes its update source configuration and targets
@@ -8,7 +16,7 @@ The installer now includes its update source configuration and targets
 packages are accepted. Older retail packages cannot replace this build.
 Updated assets on the installer release are identified by their SHA256
 digest and upload time, even when the release tag stays the same.
-The game executable is unchanged from v120; gameplay limits below remain.
+The gameplay limitations documented below remain.
 
 RELEASE NOTES
 Includes Surface scenery, boxes, Klobb assets and native explosive red barrels.
@@ -31,15 +39,21 @@ only that EXE, README.txt and VALIDATION.txt. The installer temporarily
 extracts its support files and removes them when it closes. The installed
 game still requires its extracted game assets, runtime files and saves.
 
-Requires 64-bit Windows 10/11 and .NET Framework 4.8. Supply your original
-US retail Xbox 360 Perfect Dark Zero ISO or a clean extracted copy.
-Rev 1 and Limited Edition GAME discs are not supported. The separate
-Limited Edition BONUS disc is optional. The source ISO is not modified.
+Requires 64-bit Windows 10/11 and .NET Framework 4.8. Supply your
+US original or US Rev 1 Xbox 360 Perfect Dark Zero ISO, or a clean extraction.
+The revision is detected from its verified executable and disc file list.
+Other game-disc revisions are not supported. The separate Limited Edition
+BONUS disc remains optional. The source ISO is never modified.
 
-For the current Reinstated gameplay features, supply Title Update 3 on
-the game-source page. Its original content package or ZIP is accepted.
-Skipping TU3 installs the earlier original-disc build, which does not
-include all current TU3 features. Supply your own DLC and language sources.
+With Rev 1, the installer prepares the current TU3-compatible Reinstated
+build automatically. No separate title-update package is needed. Rev 1's
+bundled map-pack files are retained. This compatibility conversion targets
+the supported TU3 executable; it does not run Rev 1's executable directly.
+For an original disc, supply Title Update 3 on the game-source page. Its
+original content package or ZIP is accepted. Skipping TU3 on an original
+disc installs the earlier build without all current features. Original-disc
+users still supply their own optional DLC. Additional language sources
+remain optional for both revisions.
 The installer does not download game discs, title updates, DLC or voices.
 
 Choose a NEW destination folder. Existing installations and saves are not

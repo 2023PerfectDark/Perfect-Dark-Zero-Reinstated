@@ -37,6 +37,9 @@ namespace PdzInstaller {
  }
  public sealed class Disc : IDisposable {
   public const string RetailHash="e50192f437bd1ff70a65fae8b5561aa822ab91052fe35fd500594689e130859e";
+  public const string Rev1Hash="878618dcc302e4662596fea699e17248b0b1638637c3c64c05e42f03f9390e17";
+  public bool IsRev1 {get;private set;}
+  public string ExecutableHash {get{return IsRev1?Rev1Hash:RetailHash;}}
   public readonly string PathName;public readonly bool IsFolder;public readonly List<Entry> Entries=new List<Entry>();
   FileStream stream;long partition;HashSet<long> directories=new HashSet<long>();
   public Disc(string path) {
@@ -58,8 +61,10 @@ namespace PdzInstaller {
    }
   }
   public byte[] Bytes(Entry e){if(e.Size>16*1024*1024)throw new InvalidDataException("Unexpectedly large metadata file.");return IsFolder?File.ReadAllBytes(Safe.Child(PathName,e.Name)):Safe.Read(stream,e.Offset,(int)e.Size);}
-  public void ValidateRetail(){var e=Entries.SingleOrDefault(x=>x.Name.Equals("default.xex",StringComparison.OrdinalIgnoreCase));if(e==null||Safe.Hash(Bytes(e))!=RetailHash)throw new InvalidDataException("Use the original US retail Perfect Dark Zero disc. Rev 1 and Limited Edition game discs are not supported.");
-   string index=Path.Combine(Engine.Root,"retail-index.json");if(!File.Exists(index))throw new IOException("The installer's retail file index is missing.");var expected=new JavaScriptSerializer().Deserialize<Entry[]>(File.ReadAllText(index));var found=Entries.ToDictionary(x=>x.Name,StringComparer.OrdinalIgnoreCase);foreach(var f in expected){Entry actual;if(!found.TryGetValue(f.Name,out actual)||actual.Size!=f.Size)throw new InvalidDataException("The game source is incomplete or modified: "+f.Name+". Select a clean US retail ISO or extraction.");}}
+  public void ValidateRetail(){var e=Entries.SingleOrDefault(x=>x.Name.Equals("default.xex",StringComparison.OrdinalIgnoreCase));string hash=e==null?"":Safe.Hash(Bytes(e));
+   IsRev1=hash==Rev1Hash;if(hash!=RetailHash&&!IsRev1)throw new InvalidDataException("Select a clean US original or US Rev 1 Perfect Dark Zero ISO or extracted folder.");
+   string index=Path.Combine(Engine.Root,IsRev1?"rev1-index.json":"retail-index.json");if(!File.Exists(index))throw new IOException("The installer's disc file index is missing.");var expected=new JavaScriptSerializer().Deserialize<Entry[]>(File.ReadAllText(index));var found=Entries.ToDictionary(x=>x.Name,StringComparer.OrdinalIgnoreCase);foreach(var f in expected){Entry actual;if(!found.TryGetValue(f.Name,out actual)||actual.Size!=f.Size)throw new InvalidDataException("The game source is incomplete or modified: "+f.Name+". Select a clean US ISO or extraction.");}
+   if(IsRev1&&Entries.Any(x=>x.Name.Equals("default.xexp",StringComparison.OrdinalIgnoreCase)))throw new InvalidDataException("Remove the separately added title-update patch from this Rev 1 extraction, or select the clean Rev 1 ISO.");}
   public void ValidateLanguage(){var e=Entries.SingleOrDefault(x=>x.Name.Equals("default.xex",StringComparison.OrdinalIgnoreCase));if(e==null)throw new InvalidDataException("No game executable found on this language disc.");var b=Bytes(e);if(b.Length<24||Encoding.ASCII.GetString(b,0,4)!="XEX2")throw new InvalidDataException("Invalid language disc.");uint count=Safe.BE(b,20);bool match=false;for(uint i=0;i<count&&24+i*8+8<=b.Length;i++){int off=(int)(24+i*8);if(Safe.BE(b,off)==0x40006){uint p=Safe.BE(b,off+4);if(p+16<=b.Length&&Safe.BE(b,(int)p+12)==0x4D5307D3)match=true;}}if(!match)throw new InvalidDataException("This language source is not Perfect Dark Zero.");}
   public void Copy(Entry e,string output,Action<long> progress,CancellationToken token){Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output));using(var dest=new FileStream(output,FileMode.CreateNew,FileAccess.Write)){if(IsFolder){using(var input=File.OpenRead(Safe.Child(PathName,e.Name)))CopyStream(input,dest,e.Size,progress,token);}else{stream.Position=e.Offset;CopyStream(stream,dest,e.Size,progress,token);}}}
   public static void CopyStream(Stream src,Stream dest,long length,Action<long> progress,CancellationToken token){var b=new byte[1024*1024];long remaining=length;while(remaining>0){token.ThrowIfCancellationRequested();int n=src.Read(b,0,(int)Math.Min(remaining,b.Length));if(n==0)throw new EndOfStreamException();dest.Write(b,0,n);remaining-=n;progress(n);}}
@@ -96,6 +101,7 @@ namespace PdzInstaller {
  }
  public sealed class Status {public string Stage,Detail;public long Done,Total;public double Seconds;}
  public sealed class Plan : IDisposable {
+  public bool UsesTu3 {get{return Game.IsRev1||Updates.Count>0;}}
   public Selection Choice;public Disc Game,BonusDisc;public List<Disc> Languages=new List<Disc>();public List<Stfs> Updates=new List<Stfs>(),Dlc=new List<Stfs>();public List<string> TempFolders=new List<string>();public PayloadFile[] Payload;public long Bytes,Free,ModBytes,BonusBytes,InstallBytes;public string Root;
   public void Dispose(){if(Game!=null)Game.Dispose();if(BonusDisc!=null)BonusDisc.Dispose();foreach(var d in Languages)d.Dispose();foreach(var d in Updates.Concat(Dlc))d.Dispose();foreach(var p in TempFolders){try{string parent=System.IO.Path.GetTempPath();if(Path.GetFullPath(p)==Safe.Child(parent,Path.GetFileName(p))&&Path.GetFileName(p).StartsWith("PDZ-source-"))Directory.Delete(p,true);}catch{}}}
  }
@@ -128,7 +134,7 @@ namespace PdzInstaller {
    var sources=new[]{p.Game}.Concat(p.Languages).ToArray();
    foreach(var lang in choice.TextLanguages)if(!sources.Any(d=>d.Entries.Any(e=>LanguageEntry(e,lang,false))))throw new InvalidDataException("No "+lang+" display-language files found. Add the matching regional disc.");
    foreach(var lang in choice.Dubs)if(!sources.Any(d=>d.Entries.Any(e=>LanguageEntry(e,lang,true))))throw new InvalidDataException("No "+lang+" voice files found. Add the matching regional disc.");
-   if(choice.Update!=""){
+   if(choice.Update!=""&&!p.Game.IsRev1){
     foreach(var file in PackageFiles(choice.Update,p)){var s=new Stfs(file);if(s.Entries.Any(e=>e.Name.Equals("default.xexp",StringComparison.OrdinalIgnoreCase)))p.Updates.Add(s);else s.Dispose();}
     if(p.Updates.Count!=1)throw new InvalidDataException("Select Perfect Dark Zero Title Update 3.");
     var patch=p.Updates[0].Entries.Single(e=>e.Name.Equals("default.xexp",StringComparison.OrdinalIgnoreCase));if(Safe.Hash(p.Updates[0].Bytes(patch))!="2911caf084272fd22199956359e96055539e809e34550600ec73d6d06b0b2c78")throw new InvalidDataException("This title update does not match Title Update 3.");
@@ -142,7 +148,7 @@ namespace PdzInstaller {
       string cache=Path.Combine(Path.GetTempPath(),"PDZ-source-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(cache);p.TempFolders.Add(cache);bonusPath=Path.Combine(cache,"Bonus DVD.iso");using(var input=images[0].Open())using(var output=new FileStream(bonusPath,FileMode.CreateNew))Disc.CopyStream(input,output,images[0].Length,n=>{},token);
      }}p.BonusDisc=new Disc(bonusPath);ValidateBonus(p.BonusDisc);p.BonusBytes=p.BonusDisc.Entries.Sum(e=>e.Size);
    }
-   p.Payload=SelectPayload(Manifest(),choice,p.Updates.Count>0);p.ModBytes=p.Payload.Where(f=>f.group!="bonus").Sum(f=>f.size);
+   p.Payload=SelectPayload(Manifest(),choice,p.UsesTu3);p.ModBytes=p.Payload.Where(f=>f.group!="bonus").Sum(f=>f.size);
    var installed=new Dictionary<string,long>(StringComparer.OrdinalIgnoreCase);
    foreach(var e in p.Game.Entries.Where(e=>!e.Name.StartsWith("$SystemUpdate",StringComparison.OrdinalIgnoreCase)))installed["assets/"+e.Name]=e.Size;
    p.Bytes=installed.Values.Sum()+p.Payload.Sum(f=>f.size)+p.Updates.Concat(p.Dlc).Sum(s=>s.Entries.Sum(e=>e.Size));
@@ -150,6 +156,7 @@ namespace PdzInstaller {
    foreach(var s in p.Updates)foreach(var e in s.Entries){installed["update/"+e.Name]=e.Size;if(e.Name.Equals("default.xexp",StringComparison.OrdinalIgnoreCase)){installed["assets/default.xexp"]=e.Size;p.Bytes+=e.Size;}}
    foreach(var s in p.Dlc)foreach(var e in s.Entries)installed["user/0000000000000000/4D5307D3/00000002/"+s.Name+"/"+e.Name]=e.Size;
    foreach(var f in p.Payload)installed[f.destination.Replace('\\','/')]=f.size;
+   if(p.Game.IsRev1){installed["assets/default.xex"]=Rev1.OutputSize;p.Bytes+=Rev1.OutputSize+0x13e0000;Rev1.ValidateTools();}
    p.InstallBytes=installed.Values.Sum()+p.BonusBytes;
    p.Bytes+=p.BonusBytes;p.Free=new DriveInfo(System.IO.Path.GetPathRoot(choice.Target)).AvailableFreeSpace;
    if(p.Free<p.Bytes+256L*1024*1024)throw new IOException("Not enough free space. Needed: "+Safe.Size(p.Bytes+256L*1024*1024)+". Available: "+Safe.Size(p.Free)+".");
@@ -171,7 +178,8 @@ namespace PdzInstaller {
      }
      foreach(var e in plan.Game.Entries.Where(e=>!e.Name.StartsWith("$SystemUpdate",StringComparison.OrdinalIgnoreCase))){string file=Safe.Child(assets,e.Name);if(!File.Exists(file)||new FileInfo(file).Length!=e.Size)throw new IOException("ISO extraction incomplete: "+e.Name);}
     }else foreach(var e in plan.Game.Entries.Where(e=>!e.Name.StartsWith("$SystemUpdate",StringComparison.OrdinalIgnoreCase))){detail=e.Name;plan.Game.Copy(e,Safe.Child(assets,e.Name),progress,token);}
-    if(Safe.Hash(System.IO.Path.Combine(assets,"default.xex"))!=Disc.RetailHash)throw new InvalidDataException("The extracted executable failed verification.");
+    if(Safe.Hash(System.IO.Path.Combine(assets,"default.xex"))!=plan.Game.ExecutableHash)throw new InvalidDataException("The extracted executable failed verification.");
+    if(plan.Game.IsRev1){phase="Preparing Rev 1 compatibility";progress(0);Rev1.Normalize(assets,stage,token);}
     phase="Installing title update";foreach(var s in plan.Updates){string update=System.IO.Path.Combine(stage,"update");s.Extract(update,progress,token);string patch=System.IO.Path.Combine(update,"default.xexp");if(Safe.Hash(patch)!="2911caf084272fd22199956359e96055539e809e34550600ec73d6d06b0b2c78")throw new InvalidDataException("This title update does not match the supported Title Update 3.");
      // ReXGlue discovers the executable patch beside default.xex. update: is
      // still mounted for the game's updated data files.
@@ -184,10 +192,10 @@ namespace PdzInstaller {
     phase="Installing and verifying the recomp mod";foreach(var f in plan.Payload){token.ThrowIfCancellationRequested();detail=f.destination;string dest=Safe.Child(stage,f.destination);copy(Safe.Child(Root,f.source),dest);if(Safe.Hash(dest)!=f.sha256)throw new InvalidDataException("Payload checksum failed: "+f.destination);}
     if(plan.BonusDisc!=null){phase="Installing Bonus DVD content";foreach(var e in plan.BonusDisc.Entries){detail=e.Name;plan.BonusDisc.Copy(e,Safe.Child(stage,"bonus/contents/"+e.Name),progress,token);}}
     phase="Finishing installation";detail="";token.ThrowIfCancellationRequested();
-    string exe=plan.Updates.Count>0?"PDZReinstatedTU3.exe":"perfectdarkzerorecomp.exe";
+    string exe=plan.UsesTu3?"PDZReinstatedTU3.exe":"perfectdarkzerorecomp.exe";
     string hardware="gpu_plugin = \"xenos\"\npdz_unlock_all_missions = false\npdz_walk_speed = 20.0\npdz_cutscene_timing_fix = true\nmnk_mode = true\nmnk_mouse = true\npdz_mouse_menu_navigation = true\nasync_shader_compilation = true\nuser_language = "+TextIds[plan.Choice.TextLanguage]+"\npdz_dub_language = "+Array.IndexOf(DubNames,plan.Choice.Dub)+"\ndev_debug_runtime = false\n";
     Safe.Write(System.IO.Path.Combine(stage,"settings/hardware.toml"),hardware);
-    Safe.Write(System.IO.Path.Combine(stage,"installation.json"),new JavaScriptSerializer().Serialize(new{version=Manifest().version,titleUpdate=plan.Updates.Count>0?3:0,sharedShaders=plan.Payload.Any(f=>f.group=="shaders-tu3"),displayLanguage=plan.Choice.TextLanguage,dub=plan.Choice.Dub,installedAt=DateTime.UtcNow.ToString("o")}));
+    Safe.Write(System.IO.Path.Combine(stage,"installation.json"),new JavaScriptSerializer().Serialize(new{version=Manifest().version,titleUpdate=plan.UsesTu3?3:0,sourceRevision=plan.Game.IsRev1?1:0,sharedShaders=plan.Payload.Any(f=>f.group=="shaders-tu3"),displayLanguage=plan.Choice.TextLanguage,dub=plan.Choice.Dub,installedAt=DateTime.UtcNow.ToString("o")}));
     if(Directory.Exists(plan.Choice.Target)||File.Exists(plan.Choice.Target))throw new IOException("The destination was created by another application. No existing files were replaced.");
     string vlcSupport=Path.Combine(stage,"bonus/vlc");if(Directory.Exists(vlcSupport))File.SetAttributes(vlcSupport,File.GetAttributes(vlcSupport)|FileAttributes.Hidden);
     Directory.Move(stage,plan.Choice.Target);report.Report(new Status{Stage="Installation complete!",Detail=plan.Choice.Target,Done=plan.Bytes,Total=plan.Bytes,Seconds=watch.Elapsed.TotalSeconds});

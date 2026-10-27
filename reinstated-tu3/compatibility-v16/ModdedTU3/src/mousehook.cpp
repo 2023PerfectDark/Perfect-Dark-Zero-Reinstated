@@ -381,6 +381,15 @@ void PointerAccept(uint64_t click, uint16_t key) {
   if (key) listener.MenuKey(key);
 }
 void InventoryMenuRendered() { inventory_render_time = NowMs(); }
+void PointerDialogAccept(uint64_t click, uint16_t key) {
+  if (!click || (key != 0x5800 && key != 0x5801)) return;
+  std::lock_guard lock(listener.mutex);
+  if (click <= listener.accepted_click || !menu_active) return;
+  listener.accepted_click = click;
+  // Notification prompts poll the pad packet rather than the focused XUI
+  // keystroke queue. Supply one timed press, with no duplicate menu event.
+  listener.pulses.Push(key == 0x5800 ? 0x1000 : 0x2000);
+}
 bool CrosshairVisible() { return crosshair_visible && gameplay_active && listener.focused; }
 bool WeatherVisible(bool cinematic) {
   // Cover and traversal hide the reticle without hiding the world. Check

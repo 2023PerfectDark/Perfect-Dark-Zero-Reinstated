@@ -17,7 +17,7 @@ namespace PdzInstaller {
    title.Text=T("This is Perfect Dark Zero: Reinstated!");
    body.Children.Add(Text("We aim to make the game more modern for its time and make it more playable to fans who disliked the more Hardcore semi Tactical shooter nature of the game, and not play like its past counterparts like GE & PD. This Enhancement fixes that while preserving the original games concept. While adding.......New Stuff. Want a hint? Ok.",24));
    body.Children.Add(Text("Are you a Modern Agent, an Old School Agent, or an OG Dark Zero Agent?",24));
-   body.Children.Add(Text("You'll need an original US retail Xbox 360 copy of Perfect Dark Zero. Rev 1 and Limited Edition game discs are not supported.",28,Gold));
+   body.Children.Add(Text("Use your US original or US Rev 1 Xbox 360 copy of Perfect Dark Zero. Rev 1 includes both map packs and needs no separate title update.",28,Gold));
    var musicFix=Text("Perfect Dark Zero: Reinstated Title Update fixes broken music that is present in the Limited Edition, Rare Replay, and Official Xbox 360/XBone Title Update versions",22);
    string message=musicFix.Text,emphasis=T("Title Update");
    int emphasisAt=message.IndexOf(emphasis,StringComparison.OrdinalIgnoreCase);

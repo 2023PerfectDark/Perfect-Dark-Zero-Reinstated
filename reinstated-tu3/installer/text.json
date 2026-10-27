@@ -1,4 +1,4 @@
-﻿{
+{
   "Next": [
     "Weiter",
     "Suivant",
@@ -151,15 +151,6 @@
     "Perfect Dark Zero のコミックをご存じですか？",
     "您知道 Perfect Dark Zero 也有漫畫嗎？",
     "Perfect Dark Zero 만화가 있다는 사실을 알고 계셨나요?"
-  ],
-  "You'll need an original US retail Xbox 360 copy of Perfect Dark Zero. Rev 1 and Limited Edition game discs are not supported.": [
-    "Du benötigst die ursprüngliche US-Verkaufsversion von Perfect Dark Zero für Xbox 360. Rev 1 und die Spiel-Disc der Limited Edition werden nicht unterstützt.",
-    "Il vous faut l'édition commerciale américaine originale de Perfect Dark Zero sur Xbox 360. Les disques Rev 1 et Limited Edition ne sont pas compatibles.",
-    "Serve la versione originale americana di Perfect Dark Zero per Xbox 360. I dischi Rev 1 e Limited Edition non sono supportati.",
-    "Necesitas la edición comercial original de EE. UU. de Perfect Dark Zero para Xbox 360. No se admiten los discos Rev 1 ni Limited Edition.",
-    "Xbox 360 版 Perfect Dark Zero の初版 US 通常版が必要です。Rev 1 と限定版のゲームディスクには対応していません。",
-    "您需要 Xbox 360 版 Perfect Dark Zero 的初版美國零售版。此安裝程式不支援 Rev 1 與典藏版的遊戲光碟。",
-    "Xbox 360용 Perfect Dark Zero의 최초 미국 일반 판매판이 필요합니다. Rev 1 및 한정판 게임 디스크는 지원하지 않습니다."
   ],
   "Browse ISO": [
     "ISO auswählen",
@@ -1015,5 +1006,50 @@
     "Finishing installation",
     "正在完成安裝",
     "설치 마무리 중"
+  ],
+  "Use your US original or US Rev 1 Xbox 360 copy of Perfect Dark Zero. Rev 1 includes both map packs and needs no separate title update.": [
+    "Verwende die ursprüngliche US-Version oder US Rev 1 für Xbox 360. Rev 1 enthält beide Kartenpakete und benötigt kein separates Titel-Update.",
+    "Utilisez votre version américaine originale ou Rev 1 sur Xbox 360. Rev 1 comprend les deux packs de cartes et ne nécessite aucune mise à jour séparée.",
+    "Usa la versione americana originale o Rev 1 per Xbox 360. Rev 1 include entrambi i pacchetti mappe e non richiede aggiornamenti separati.",
+    "Usa tu versión original de EE. UU. o Rev 1 para Xbox 360. Rev 1 incluye ambos paquetes de mapas y no necesita una actualización aparte.",
+    "Xbox 360 の初版 US 版または US Rev 1 を使用してください。Rev 1 は両方のマップパックを収録しており、別途アップデートは不要です。",
+    "請使用 Xbox 360 美版初版或 Rev 1。Rev 1 內含兩個地圖包，不需要另外提供遊戲更新。",
+    "Xbox 360 미국 초판 또는 미국 Rev 1을 사용하세요. Rev 1에는 두 맵 팩이 포함되어 있으며 별도의 타이틀 업데이트가 필요하지 않습니다."
+  ],
+  "Rev 1 is detected automatically and uses the latest Reinstated build without a separate title update. Original discs need Title Update 3 for the latest gameplay fixes.": [
+    "Rev 1 wird automatisch erkannt und verwendet den aktuellen Reinstated-Build ohne separates Titel-Update. Original-Discs benötigen Titel-Update 3 für die aktuellen Spielkorrekturen.",
+    "Rev 1 est détectée automatiquement et utilise le dernier build Reinstated sans mise à jour séparée. Les disques originaux nécessitent la mise à jour 3 pour les derniers correctifs.",
+    "Rev 1 viene rilevata automaticamente e usa la build attuale di Reinstated senza aggiornamenti separati. I dischi originali richiedono Title Update 3 per le correzioni attuali.",
+    "Rev 1 se detecta automáticamente y usa la versión actual de Reinstated sin una actualización aparte. Los discos originales necesitan Title Update 3 para las correcciones actuales.",
+    "Rev 1 は自動認識され、別途アップデートなしで現在の Reinstated ビルドを使用します。初版ディスクで現在の修正を使うには Title Update 3 が必要です。",
+    "Rev 1 會自動識別，無需另外提供更新即可使用目前的 Reinstated 版本。初版光碟需要 Title Update 3 才能使用目前的遊戲修正。",
+    "Rev 1은 자동으로 감지되며 별도 업데이트 없이 현재 Reinstated 빌드를 사용합니다. 초판 디스크는 현재 수정 사항을 사용하려면 Title Update 3이 필요합니다."
+  ],
+  "Rev 1 includes both map packs on disc. Separate DLC packages are not required.": [
+    "Rev 1 enthält beide Kartenpakete auf der Disc. Separate DLC-Pakete sind nicht erforderlich.",
+    "Rev 1 contient les deux packs de cartes sur le disque. Aucun DLC séparé n’est nécessaire.",
+    "Rev 1 contiene entrambi i pacchetti mappe sul disco. Non servono DLC separati.",
+    "Rev 1 incluye ambos paquetes de mapas en el disco. No se necesitan DLC aparte.",
+    "Rev 1 は両方のマップパックをディスクに収録しています。別途 DLC は不要です。",
+    "Rev 1 光碟內含兩個地圖包，無需另外提供 DLC。",
+    "Rev 1 디스크에는 두 맵 팩이 포함되어 있습니다. 별도의 DLC 패키지는 필요하지 않습니다."
+  ],
+  "Select your US original or Rev 1 game ISO or extracted folder.": [
+    "Wähle die US-Original- oder Rev-1-ISO bzw. den entpackten Ordner.",
+    "Sélectionnez l’ISO américaine originale ou Rev 1, ou son dossier extrait.",
+    "Seleziona l’ISO americana originale o Rev 1, oppure la cartella estratta.",
+    "Selecciona la ISO original de EE. UU. o Rev 1, o su carpeta extraída.",
+    "初版 US 版または Rev 1 の ISO か展開済みフォルダーを選択してください。",
+    "請選擇美版初版或 Rev 1 的 ISO 或解壓縮資料夾。",
+    "미국 초판 또는 Rev 1 ISO나 압축 해제 폴더를 선택하세요."
+  ],
+  "The shared cache requires Rev 1 or an original disc with Title Update 3. Go back to Game & title update to change your source, or build your own cache.": [
+    "Der gemeinsame Cache benötigt Rev 1 oder eine Original-Disc mit Titel-Update 3. Ändere die Quelle unter Spiel & Titel-Update oder erstelle deinen eigenen Cache.",
+    "Le cache partagé nécessite Rev 1 ou un disque original avec la mise à jour 3. Modifiez la source dans Jeu et mise à jour, ou créez votre propre cache.",
+    "La cache condivisa richiede Rev 1 o un disco originale con Title Update 3. Cambia la sorgente in Gioco e aggiornamento oppure crea la tua cache.",
+    "La caché compartida requiere Rev 1 o un disco original con Title Update 3. Cambia la fuente en Juego y actualización o crea tu propia caché.",
+    "共有キャッシュには Rev 1 または Title Update 3 適用の初版ディスクが必要です。ゲームとアップデートの画面で変更するか、自分でキャッシュを作成してください。",
+    "共用快取需要 Rev 1 或搭配 Title Update 3 的初版光碟。請返回遊戲與更新頁面變更來源，或自行建立快取。",
+    "공유 캐시는 Rev 1 또는 Title Update 3이 적용된 초판 디스크가 필요합니다. 게임 및 업데이트에서 소스를 변경하거나 직접 캐시를 만드세요."
   ]
 }

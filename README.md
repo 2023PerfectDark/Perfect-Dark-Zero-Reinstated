@@ -1,10 +1,10 @@
 # Perfect Dark Zero Reinstated
 
-## [Download the latest installer — 1.8 / v121](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/tag/PDZInstaller)
+## [Download the latest installer — 1.8 / v124](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/tag/PDZInstaller)
 
-**[Download installer ZIP](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/download/PDZInstaller/Perfect.Dark.Zero.Reinstated.v121.zip)** · [Release notes and verification](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/tag/PDZInstaller) · [Current TU3 source backup](reinstated-tu3)
+**[Download installer ZIP](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/download/PDZInstaller/Perfect.Dark.Zero.Reinstated.v124.zip)** · [Release notes and verification](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/tag/PDZInstaller) · [Current TU3 source backup](reinstated-tu3)
 
-The self-contained installer includes Surface and the optional completed-playthrough shader cache. v121 fixes the in-game updater configuration and TU3 package selection. It uses the v120 game build; remaining gameplay checks and known limitations are documented in the release and VALIDATION.txt.
+Supports the original US ISO and **US Rev 1 ISO** as the main game source. Includes Surface, optional completed-playthrough shaders, corrected player-list highlighting, and clickable OK/Cancel dialogs that restore mouse navigation afterward. See VALIDATION.txt for coverage and known limitations, including unresolved random bot head/body buttons.
 
 ---
 

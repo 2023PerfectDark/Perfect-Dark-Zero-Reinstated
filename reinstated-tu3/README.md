@@ -1,4 +1,4 @@
-# Reinstated TU3 source backup — v121 installer / v120 game
+# Reinstated TU3 source backup — v124 installer / v124 game
 
 This snapshot preserves the current TU3 modifications, generated TU3 translation,
 tests, installer sources, packaging tools, and the SDK working-tree patch.
@@ -19,4 +19,6 @@ build and stock objects before running `tools/build-modded-tu3.py --next`.
 This is a source backup, not a verified one-command clean-machine build.
 
 `installer/VALIDATION.txt` records test coverage and outstanding gameplay checks.
-v121 fixes updater packaging; its game executable is unchanged from v120.
+The installer accepts the original US disc and US Rev 1. Rev 1 compatibility
+uses verified source/output images; tools/make-rev1-compatibility-patch.py
+documents patch generation from locally supplied inputs.

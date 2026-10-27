@@ -1,7 +1,15 @@
 """Collect explicitly selected source trees; never stage the live game or user data."""
 from pathlib import Path
-import hashlib, json, shutil, subprocess
+import argparse, hashlib, json, shutil, subprocess
+parser=argparse.ArgumentParser()
+parser.add_argument('--installer-version', default='v124')
+parser.add_argument('--game-version', default='v123')
+args=parser.parse_args()
+if not all(v.startswith('v') and v[1:].isdigit() for v in (args.installer_version,args.game_version)):
+    parser.error('Versions must be v followed by digits')
 root=Path(__file__).resolve().parents[1]
+checksums=root/('releases/SHA256SUMS-'+args.installer_version+'.txt')
+if not checksums.is_file(): raise FileNotFoundError('Build and validate the release checksum manifest before backing up source')
 repo=root/'staging/reinstated-github-backup'; dest=repo/'reinstated-tu3'
 dest.mkdir(exist_ok=True)
 suffixes={'.cpp','.h','.hpp','.inl','.c','.cmake','.toml','.json','.py','.ps1','.cmd','.cs','.mjs','.md','.txt','.ico','.rc'}
@@ -23,7 +31,7 @@ for relative in ('compatibility-v16/ModdedTU3/src','compatibility-v16/ModdedTU3/
                  'compatibility-v16/PerfectDarkZeroRecomp/tests','tools','tests'):
     tree(relative)
 for p in (root/'installer').iterdir():
-    if p.is_file() and p.suffix.lower() in {'.cs','.py','.cmd','.json','.txt','.mjs'} and not p.name.startswith(('test-','stock-')):
+    if p.is_file() and p.suffix.lower() in {'.cs','.cpp','.py','.cmd','.json','.txt','.mjs'} and not p.name.startswith(('test-','stock-')):
         copy(p)
 for p in root.glob('*.cmd'): copy(p)
 for p in root.glob('*.py'): copy(p)
@@ -34,7 +42,7 @@ for p in (root/'installer/payload/common/mod_assets/updater').iterdir():
     if p.suffix in ('.ps1','.json','.txt'): copy(p)
 sdk=root/'compatibility-v16/sdk'
 copy(sdk/'LICENSE')
-copy(root/'releases/SHA256SUMS-v121.txt', 'release/SHA256SUMS-v121.txt')
+copy(checksums, 'release/'+checksums.name)
 metadata={}
 for label, path in [('sdk',sdk),('upstream_game',root/'compatibility-v16/PerfectDarkZeroRecomp')]:
     revision=subprocess.run(['git','-C',str(path),'rev-parse','--verify','HEAD'],capture_output=True,text=True)
@@ -55,7 +63,7 @@ if lib.exists():
 (dest/'BASELINES.json').write_text(json.dumps(metadata,indent=2)+'\n')
 (dest/'SOURCE-SHA256.json').write_text(json.dumps(inventory,indent=2)+'\n')
 (dest/'.gitattributes').write_text('* -text\n')
-(dest/'README.md').write_text('''# Reinstated TU3 source backup — v121 installer / v120 game
+(dest/'README.md').write_text(f'''# Reinstated TU3 source backup — {args.installer_version} installer / {args.game_version} game
 
 This snapshot preserves the current TU3 modifications, generated TU3 translation,
 tests, installer sources, packaging tools, and the SDK working-tree patch.
@@ -76,6 +84,8 @@ build and stock objects before running `tools/build-modded-tu3.py --next`.
 This is a source backup, not a verified one-command clean-machine build.
 
 `installer/VALIDATION.txt` records test coverage and outstanding gameplay checks.
-v121 fixes updater packaging; its game executable is unchanged from v120.
+The installer accepts the original US disc and US Rev 1. Rev 1 compatibility
+uses verified source/output images; tools/make-rev1-compatibility-patch.py
+documents patch generation from locally supplied inputs.
 ''',encoding='utf-8')
 print(json.dumps({'snapshot':str(dest),'files':len(inventory),'bytes':sum(p.stat().st_size for p in dest.rglob('*') if p.is_file())}))

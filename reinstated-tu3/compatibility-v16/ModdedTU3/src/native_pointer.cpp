@@ -58,6 +58,33 @@ std::u16string Id(uint32_t element, uint8_t* base) {
 }
 // UI-thread state only. Never clear the game's unread-message state.
 std::map<uint32_t, pdz_ui::NotificationTimeout> notificationTimeouts;
+// Native confirmation dialogs retain focus on the underlying d-PAL page.
+// Track the rendered dialog separately so its visual A/B legends can receive
+// clicks without transferring focus or clicking through to that page.
+uint32_t confirmation_dialog = 0;
+uint32_t confirmation_handle = 0;
+bool ConfirmationVisible(PPCContext& context, uint8_t* base) {
+  if (!confirmation_handle) return false;
+  auto call = context;
+  call.r3.u64 = confirmation_handle;
+  call.r4.u64 = REX_LOAD_U32(0x82D363C4);
+  sub_827897B0(call, base);
+  // Destroyed scenes can retain their ID and visible flag in freed memory.
+  // Resolve the generation-checked XUI handle before trusting the cached data.
+  if (call.r3.u32 != confirmation_dialog) {
+    confirmation_dialog = confirmation_handle = 0;
+    return false;
+  }
+  return Id(confirmation_dialog, base) == u"aid_darkxui_frontend_menu_notification_cancel" &&
+      Visible(confirmation_dialog, base);
+}
+bool InConfirmation(uint32_t element, uint8_t* base) {
+  for (unsigned depth = 0; element && depth < 64 && Range(element, 44); ++depth) {
+    if (element == confirmation_dialog) return true;
+    element = REX_LOAD_U32(element + 40);
+  }
+  return false;
+}
 double NotificationNow() {
   return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
@@ -67,6 +94,54 @@ uint32_t PauseOwner(uint32_t element, uint8_t* base) {
     element = REX_LOAD_U32(element + 40);
   }
   return 0;
+}
+
+// The player-list skins can retain their Focus timeline after XUI has already
+// moved selection. Reconcile the authored visual state independently of mouse
+// motion, so keyboard navigation and recycled/scrolled rows are covered too.
+void SyncPlayerRowVisual(PPCContext& call, uint8_t* base, uint32_t handle,
+                         uint32_t element) {
+  if (!Visible(element, base) || Id(element, base) != u"control_ListItem") return;
+  const auto parent = REX_LOAD_U32(element + 40);
+  const auto parent_id = Id(parent, base);
+  if (parent_id != u"listPlayers" && parent_id != u"listPlayerInfo") return;
+  bool player_page = false;
+  for (uint32_t p = parent, depth = 0; p && depth < 16 && Range(p, 44); ++depth) {
+    const auto id = Id(p, base);
+    if (id.starts_with(u"aid_darkxui_frontend_multi_gamelobby_") ||
+        id == u"aid_darkxui_frontend_multi_playerlist") { player_page = true; break; }
+    p = REX_LOAD_U32(p + 40);
+  }
+  if (!player_page) return;
+  call.r3.u64 = REX_LOAD_U32(parent); sub_8277BE58(call, base);
+  call.r4.u64 = REX_LOAD_U32(0x82D363B4); sub_827897B0(call, base);
+  const uint32_t list = call.r3.u32;
+  if (!Range(list, 92)) return;
+  const int32_t selected = int32_t(REX_LOAD_U32(list + 84));
+  call.r3.u64 = handle; sub_82789E48(call, base);
+  const int32_t index = call.r3.s32;
+  if (index < 0 || uint32_t(index) >= REX_LOAD_U32(list + 88)) return;
+  call.r3.u64 = 255; sub_82789AE8(call, base);
+  if (!call.r3.u32) { call.r3.u64 = 0; sub_82789AE8(call, base); }
+  if (call.r3.u32) sub_8277BE58(call, base);
+  const auto focus = call.r3.u32;
+  call.r3.u64 = handle; sub_8279ACD8(call, base);
+  const unsigned state = call.r3.u32 ? (index == selected && focus == handle ? 1 : 0) : 3;
+  // Include the skin handle: native lobby updates may replace it on a live row.
+  const uint32_t output = call.r1.u32 + 80;
+  REX_STORE_U32(output, 0);
+  call.r3.u64 = handle; call.r4.u64 = output; sub_8278DDB0(call, base);
+  const auto visual = REX_LOAD_U32(output);
+  if (call.r3.s32 < 0 || !visual) return;
+  struct State { uint32_t visual, focus; int32_t selected; unsigned state; };
+  static std::map<uint32_t, State> states;
+  if (states.size() > 256) states.clear();
+  const auto old = states.find(handle);
+  if (old != states.end() && old->second.visual == visual && old->second.focus == focus &&
+      old->second.selected == selected && old->second.state == state) return;
+  call.r3.u64 = handle; call.r4.u64 = state;
+  sub_8278DF38(call, base); // Explicit Normal / Focus / NormalDisable range.
+  if (call.r3.s32 >= 0) states[handle] = {visual, focus, selected, state};
 }
 }
 
@@ -120,6 +195,14 @@ REX_HOOK_RAW(sub_82782758) {
       // Hide only the HUD scene, leaving d-PAL and host options accessible.
       const auto element=call.r3.u32;
       const auto id=Id(element,base);
+      if(id==u"aid_darkxui_frontend_menu_notification_cancel" && Visible(element,base)) {
+        confirmation_dialog=element;
+        confirmation_handle=render_handle;
+      }
+      if(id==u"control_ListItem") {
+        call.r3.u64=render_handle;sub_8277BE58(call,base);
+        SyncPlayerRowVisual(call,base,call.r3.u32,element);
+      }
       if(REXCVAR_GET(pdz_hide_hud)&&id.starts_with(u"aid_darkxui_ingame_hud")){ctx.r3.u64=0;return;}
       if(id==u"imageObjectiveMessages"){
         if(notificationTimeouts.size()>32)notificationTimeouts.clear();
@@ -185,6 +268,26 @@ REX_HOOK_RAW(sub_82782758) {
   trace.element=element;trace.stage=1;
   if (!Visible(element, base)) return;
   trace.stage=2;
+  if (ConfirmationVisible(call, base)) {
+    if (!InConfirmation(element, base) || !pointer.click) return;
+    const auto name = Id(element, base);
+    const auto parent = Id(REX_LOAD_U32(element + 40), base);
+    const uint16_t action = name == u"A_Button" && parent == u"buttonOK" ? 0x5800 :
+        name == u"B_Button" && parent == u"buttonCancel" ? 0x5801 : 0;
+    if (!action) return;
+    auto f = [base](uint32_t p) { return std::bit_cast<float>(REX_LOAD_U32(p)); };
+    const float width = f(element + 12), height = f(element + 16);
+    const float x = pointer.x * 1280.f - f(element + 208);
+    const float y = pointer.y * 720.f - f(element + 212);
+    // Authored legends contain blank left padding. Only their visible right
+    // ends are clickable; otherwise Cancel and OK rectangles overlap.
+    if (std::isfinite(x) && std::isfinite(y) && std::isfinite(width) &&
+        std::isfinite(height) && width > 0 && height > 0 &&
+        x >= std::max(0.f, width - 130.f) && x <= width &&
+        y >= 0 && y <= std::min(height, 40.f))
+      pdz_input::PointerDialogAccept(pointer.click, action);
+    return;
+  }
   // Cached scenes share the background root during transitions. Compare the
   // nearest XuiScene, not that shared root, or the old title can steal focus.
   uint32_t focus_user = 255;
@@ -383,6 +486,8 @@ REX_HOOK_RAW(sub_82782758) {
   trace.stage=4;
   const bool list_item = id == u"control_ListItem";
   uint32_t list_handle = 0;
+  uint32_t list_object = 0;
+  bool lobby_player_row = false;
   int32_t list_index = -1;
   if (list_item) {
     const auto parent = REX_LOAD_U32(element + 40);
@@ -392,6 +497,9 @@ REX_HOOK_RAW(sub_82782758) {
     call.r4.u64 = REX_LOAD_U32(0x82D363B4); // Registered XuiList.
     sub_827897B0(call, base);
     if (!Range(call.r3.u32, 92)) return;
+    list_object = call.r3.u32;
+    lobby_player_row = multiplayer && Id(parent, base) == u"listPlayers" &&
+        Id(multiplayer, base).starts_with(u"aid_darkxui_frontend_multi_gamelobby_");
     const auto count = REX_LOAD_U32(call.r3.u32 + 88);
     call.r3.u64 = handle; sub_82789E48(call, base); // Authored/virtualized row index.
     list_index = call.r3.s32;
@@ -466,6 +574,28 @@ REX_HOOK_RAW(sub_82782758) {
   last_motion = pointer.motion;
 
   if (list_item) {
+    if (lobby_player_row) {
+      // Focus the actual row before changing the selection. XuiList's child
+      // focus notification updates its selected index and redraws the old row.
+      // SetCurSel followed by SetFocus(list) can instead focus the container
+      // while its selected child has already changed, leaving old row visuals
+      // in their focused state. Do not synthesize another focus cycle while
+      // the pointer moves within the same gamertag.
+      if (focused_handle != handle) {
+        call.r3.u64 = handle; call.r4.u64 = focus_user;
+        sub_8278F328(call, base);
+        if (call.r3.s32 < 0) return;
+      }
+      // Native child-focus notifications normally synchronize this already.
+      // Retain the normal selection notification if a custom row did not.
+      if (int32_t(REX_LOAD_U32(list_object + 84)) != list_index) {
+        call.r3.u64 = list_handle; call.r4.u64 = list_index;
+        sub_8279AA00(call, base);
+        if (call.r3.s32 < 0) return;
+      }
+      pdz_input::PointerAccept(pointer.click);
+      return;
+    }
     call.r3.u64 = list_handle; call.r4.u64 = list_index;
     sub_8279AA00(call, base); // Native selection updates details and row highlight.
     if (call.r3.s32 < 0) return;

@@ -1,6 +1,34 @@
 PERFECT DARK ZERO: REINSTATED - RELEASE VALIDATION
-Release candidate v121 - 26 October 2026
-TU3 base 1.8; game build v120
+Release v124 - 27 October 2026
+TU3 base 1.8; game build v124
+
+DIALOG MOUSE CONTROLS v124
+OK and Cancel use the native controller-button path. Dismissed dialogs are
+validated against live UI handles so they cannot block later mouse input.
+The user confirmed both dialog actions and subsequent menu hovering/clicking.
+
+REV 1 INSTALLER SUPPORT v124
+The US Rev 1 ISO is recognized independently of the original US disc.
+Original-disc acceptance and regional language validation still pass.
+A complete separate installation from the clean Rev 1 extraction passed
+file validation and reached the in-game main menu / local mode selection.
+Rev 1 has added files for both map packs (six maps). The user reported a DLC map reaching gameplay in the separate test install.
+This is not an exhaustive test of all six maps.
+The Rev 1 image reader never executes guest game code. A small binary delta
+converts its verified loaded image into the supported TU3 executable image.
+The resulting XEX was independently loaded and its entire image matched TU3.
+Exact source/output hashes, helper integrity, payload selection and corrupt
+or truncated delta rejection have been tested. These checks do not prove
+that every mission, map or gameplay action is compatible with Rev 1 assets.
+The original ISO/extracted source and existing installs are not changed.
+
+PLAYER-LIST HIGHLIGHTS v123
+Fixes stale gamertag highlights in the multiplayer lobby and Connected
+Players screen. The user confirmed both screens highlight one name at a
+time in the installed build. Targeted host tests cover visual reset,
+selection changes, scrolling/recycled rows, and disabled rows; these
+tests do not replace broader in-game keyboard/click testing.
+Random bot head/body buttons remain a separate unresolved issue.
 
 UPDATER AND PACKAGING v121
 The installer now includes its update source configuration and targets
@@ -8,7 +36,7 @@ The installer now includes its update source configuration and targets
 packages are accepted. Older retail packages cannot replace this build.
 Updated assets on the installer release are identified by their SHA256
 digest and upload time, even when the release tag stays the same.
-The game executable is unchanged from v120; gameplay limits below remain.
+The gameplay limitations documented below remain.
 
 CURRENT AUTOMATED CHECKS
 All six regression runners passed during this release preparation:
@@ -46,7 +74,7 @@ corruption and GPU device-hung incidents are not all proven resolved by
 this change. Solo pickup/switching and mission-transition tests remain.
 
 PAYLOAD AND DEFAULTS
-The TU3 payload matches the compiled v120 executable. Packaging verifies
+The TU3 payload matches the compiled v123 executable. Packaging verifies
 all manifest sizes/hashes, artwork paths, destination uniqueness and ZIP CRC.
 Surface v4 terrain, pickup geometry, music, supporting textures and the
 native red-barrel package are mandatory packaging checks.
@@ -76,7 +104,7 @@ Mission 6 muzzle flashes/smoke after added splash/ripple emitters were removed;
 native snow in Missions 4/6/7 and prior flake size/density adjustments.
 
 EARLIER INSTALLER COVERAGE
-Original US retail ISO accepted, Rev 1 rejected; regional language sources,
+Original US retail ISO and regional language sources,
 TU3 patching, Chinese menus, clean Map Pack Two and Bonus DVD installation
 were checked earlier. A retail-only installation reached the front end.
 Unsafe extraction paths, cancellation and Bonus video playback/seeking were
