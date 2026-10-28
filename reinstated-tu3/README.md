@@ -1,4 +1,4 @@
-# Reinstated TU3 source backup — v125 installer / v124 game
+# Reinstated TU3 source backup — v126 installer / v124 game
 
 This snapshot preserves the current TU3 modifications, generated TU3 translation,
 tests, installer sources, packaging tools, and the SDK working-tree patch.

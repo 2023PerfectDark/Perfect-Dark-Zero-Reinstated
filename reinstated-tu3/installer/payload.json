@@ -1,5 +1,5 @@
 {
-  "version": "Perfect Dark Zero: Reinstated v125 Release - 2026-10-28 (TU3 base 1.8; game v124)",
+  "version": "Perfect Dark Zero: Reinstated v126 Release - 2026-10-28 (TU3 base 1.8; game v124)",
   "files": [
     {
       "source": "payload/retail/perfectdarkzerorecomp.exe",
@@ -3323,8 +3323,8 @@
       "source": "payload/common/mod_assets/updater/changelog.txt",
       "destination": "mod_assets/updater/changelog.txt",
       "group": "common",
-      "size": 2477,
-      "sha256": "7544ed0847d81e9a5521af3472fcb06d5cafdf940773b57f9319f40cc6336ad9"
+      "size": 1673,
+      "sha256": "52ea33e3366776c133b31e7ef91d814b4adcc919b32e50da08e1f0950aa14de8"
     },
     {
       "source": "payload/common/mod_assets/updater/update.ps1",
@@ -7902,7 +7902,7 @@
       "destination": "mod_assets/updater/source.json",
       "group": "common",
       "size": 296,
-      "sha256": "881be2acd5b2f463470ac6447b1cfd11adecedf783bf7708685945f0c8ca8aa2"
+      "sha256": "2f7efe1481a02869a56be141cef42d2aebcf27c19ad1388dc03e1fe5de15ab06"
     }
   ]
 }
