@@ -143,3 +143,5 @@ VLC 3.0.24 components and licences are installed under bonus/vlc/ when used.
 Official binary/source archive: https://download.videolan.org/pub/videolan/vlc/3.0.24/
 Existing game/mod licences are included in the installed payload. Artwork
 and music are the supplied/chosen materials. No full game disc is bundled.
+
+Installer v125: US Rev 1 ISO support is explicitly shown. Rev 1 automatically includes disc DLC, skips the separate DLC page, and disables external Title Update 3. Previously selected DLC/update inputs are cleared when Rev 1 is detected. The install engine rejects external packages for Rev 1. Original US disc installation remains available.

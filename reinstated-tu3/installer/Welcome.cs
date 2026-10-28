@@ -29,7 +29,7 @@ namespace PdzInstaller {
    }
    body.Children.Add(musicFix);
    Note("The game disc is verified before installation. You can supply an ISO directly or choose an extracted game folder.");
-   Note("Title Update 3, DLC, extra languages and the Bonus DVD are optional.");
+   Note("Original US and US Rev 1 ISOs are supported. Rev 1 includes disc DLC automatically and skips separate DLC installation; external Title Update 3 is disabled. Extra languages and the Bonus DVD are optional.");
    welcomePaused=false;
    scrollPause=Button("Pause Scroll",()=>{
     if(welcomePaused){

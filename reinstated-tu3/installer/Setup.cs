@@ -76,7 +76,7 @@ namespace PdzInstaller {
   void Error(string s){notice.Text=s;notice.Foreground=new SolidColorBrush(Color.FromRgb(255,159,123));PlayCue("error");}
   StackPanel Row(params UIElement[] children){var r=new StackPanel{Orientation=Orientation.Horizontal};foreach(var c in children)r.Children.Add(c);return r;}
   void InvalidatePlan(){if(plan!=null){plan.Dispose();plan=null;}if(page==8&&next!=null)next.IsEnabled=false;}
-  void Show(int value){StopWelcome();if(comicTimer!=null){comicTimer.Stop();comicTimer=null;}page=value;UpdateChromeLanguage();Canvas old=BeginPage(value);
+  void Show(int value){StopWelcome();if(comicTimer!=null){comicTimer.Stop();comicTimer=null;}if(value==3&&rev1Source&&!preview)value=page>3?2:4;page=value;UpdateChromeLanguage();Canvas old=BeginPage(value);
    var heading=Text(T("Installer").ToUpperInvariant()+"  |  "+T(steps[page]).ToUpperInvariant(),28,Gold);heading.FontFamily=new FontFamily("Bahnschrift");heading.FontWeight=FontWeights.SemiBold;heading.Width=1260;heading.TextAlignment=TextAlignment.Right;At(heading,160,110);
    stepLabel=Text((preview?"PREVIEW  •  ":"")+String.Format("{0:00} / {1:00}",page+1,keys.Length),18,Dim);At(stepLabel,164,168);
    var marks=new StackPanel{Orientation=Orientation.Horizontal};for(int i=0;i<keys.Length;i++)marks.Children.Add(new Border{Width=47,Height=5,Margin=new Thickness(0,0,7,0),Background=i==page?Gold:i<page?Blue:Ink});At(marks,778,177);
@@ -106,7 +106,7 @@ namespace PdzInstaller {
    var portrait=new CroppedBitmap(original,new Int32Rect(left,top,right-left+1,bottom-top+1));portrait.Freeze();return portrait;
   }
   void Next(){if(busy||page==9&&!preview)return;if(preview){Show((page+1)%keys.Length);return;}if(page==2&&String.IsNullOrWhiteSpace(choice.Game)){Error(T("Select your US original or Rev 1 game ISO or extracted folder."));return;}
-   if(page==2){try{using(var disc=new Disc(choice.Game)){disc.ValidateRetail();rev1Source=disc.IsRev1;}}catch(Exception e){Error(e.Message);return;}}
+   if(page==2){try{using(var disc=new Disc(choice.Game)){disc.ValidateRetail();rev1Source=disc.IsRev1;if(rev1Source){choice.Update="";choice.Dlc.Clear();}}}catch(Exception e){Error(e.Message);return;}}
    if(page==8){if(plan!=null)Install();return;}if(page==10&&failure!=""){Show(8);return;}if(page==11){Close();return;}Show(page+1);
   }
   void LanguagePage(){title.Text=T("Please select a language.");Note("Select the language used by this installer. Game text and voices are chosen separately.");var g=new System.Windows.Controls.Primitives.UniformGrid{Columns=2,Margin=new Thickness(0,12,0,0)};
@@ -119,10 +119,19 @@ namespace PdzInstaller {
    var r=Row(Button("Browse ISO",()=>{var f=PickFile(filter,false);if(f!=null)box.Text=f;}));if(folders)r.Children.Add(Button("Add folder",()=>{var f=PickFolder();if(f!=null)box.Text=f;}));body.Children.Add(r);
   }
   bool rev1Source;
+  StackPanel updateControls;
+  TextBlock revisionNote;
+  void DetectSourceRevision(){
+   rev1Source=false;
+   try{if(File.Exists(choice.Game)||Directory.Exists(choice.Game))using(var disc=new Disc(choice.Game)){disc.ValidateRetail();rev1Source=disc.IsRev1;}}catch{ }
+   if(rev1Source){choice.Update="";choice.Dlc.Clear();}
+   if(updateControls!=null)updateControls.IsEnabled=!rev1Source;
+   if(revisionNote!=null)revisionNote.Text=T(rev1Source?"US Rev 1 detected. Disc DLC is included automatically; the DLC step is skipped. External Title Update 3 is disabled. Reinstated compatibility is prepared automatically.":"Supported: original US ISO and US Rev 1 ISO. Original discs may use optional Title Update 3 and separate DLC.");
+  }
   bool UsesTu3Source {get{return rev1Source||choice.Update!="";}}
-  void GamePage(){title.Text=T("Add your game and optional title update.");Source("Game ISO or extracted folder",choice.Game,s=>{choice.Game=s;rev1Source=false;},"Xbox 360 disc image|*.iso|All files|*.*",true);
+  void GamePage(){title.Text=T("Add your game and optional title update.");Source("Game ISO or extracted folder",choice.Game,s=>{choice.Game=s;DetectSourceRevision();},"Xbox 360 disc image|*.iso|All files|*.*",true);
    Note("The installer extracts your ISO automatically. Keep the original ISO; no manual extraction is needed.");
-   body.Children.Add(Text("Title Update 3 (optional)",22,Lime));var row=Row(Button("Add files",()=>{var f=PickFile("Title update or ZIP|*.zip;TU_*|All files|*.*",false);if(f!=null){choice.Update=f;Show(2);}}),Button("Skip title update",()=>{choice.Update="";Show(2);}));body.Children.Add(row);Note(choice.Update==""?"Title update: skipped":Path.GetFileName(choice.Update));Note("Rev 1 is detected automatically and uses the latest Reinstated build without a separate title update. Original discs need Title Update 3 for the latest gameplay fixes.");}
+   body.Children.Add(Text("Title Update 3 (optional)",22,Lime));var row=Row(Button("Add files",()=>{DetectSourceRevision();if(rev1Source)return;var f=PickFile("Title update or ZIP|*.zip;TU_*|All files|*.*",false);if(f!=null){choice.Update=f;Show(2);}}),Button("Skip title update",()=>{choice.Update="";Show(2);}));updateControls=row;body.Children.Add(row);Note(choice.Update==""?"Title update: skipped":Path.GetFileName(choice.Update));revisionNote=Text("",18,Dim);body.Children.Add(revisionNote);DetectSourceRevision();}
   void SourceList(List<string> values){foreach(var path in values.ToArray()){string p=path;var r=new DockPanel{Margin=new Thickness(0,0,0,3)};var remove=Button("×",()=>{values.Remove(p);InvalidatePlan();Show(page);});DockPanel.SetDock(remove,Dock.Right);r.Children.Add(remove);r.Children.Add(Text(Path.GetFileName(p),18,Dim));body.Children.Add(r);}}
   void DlcPage(){if(rev1Source)Note("Rev 1 includes both map packs on disc. Separate DLC packages are not required.");title.Text=T("Add your DLC, or skip this step.");Note("Add Map Pack One and/or Map Pack Two from your own Xbox 360 content. Select the content packages, ZIP files or folders containing them.");body.Children.Add(Row(Button("Add files",()=>{PickFile("DLC packages and ZIP|*.*",true,choice.Dlc);Show(3);}),Button("Add folder",()=>{var f=PickFolder();if(f!=null){choice.Dlc.Add(f);Show(3);}}),Button("Clear",()=>{choice.Dlc.Clear();Show(3);})));SourceList(choice.Dlc);next.Content=T(choice.Dlc.Count==0?"Skip":"Next").ToUpperInvariant();}
   void LanguagesPage(bool dub){title.Text=T(dub?"Choose the voices you want to add.":"Choose additional display languages.");var chosen=dub?choice.Dubs:choice.TextLanguages;var list=dub?Engine.DubNames:Engine.TextIds.Keys.ToArray();

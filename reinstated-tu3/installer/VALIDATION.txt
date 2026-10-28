@@ -117,3 +117,5 @@ broader playthrough coverage. Bonus DVD physical controller use and a clean
 Map Pack One source remain unverified. Some translated installer pages retain
 English explanations. This candidate is not certification of every mission,
 renderer, hardware configuration or of crash-free gameplay.
+
+Installer v125: US Rev 1 ISO support is explicitly shown. Rev 1 automatically includes disc DLC, skips the separate DLC page, and disables external Title Update 3. Previously selected DLC/update inputs are cleared when Rev 1 is detected. The install engine rejects external packages for Rev 1. Original US disc installation remains available.

@@ -130,6 +130,7 @@ namespace PdzInstaller {
    if(String.IsNullOrWhiteSpace(choice.Target))throw new IOException("Choose an installation folder.");choice.Target=System.IO.Path.GetFullPath(choice.Target).TrimEnd('\\');
    if(choice.Target==System.IO.Path.GetPathRoot(choice.Target).TrimEnd('\\')||File.Exists(choice.Target)||Directory.Exists(choice.Target))throw new IOException("Choose a new installation folder. Existing installations and saves will not be replaced.");
    p.Game=new Disc(choice.Game);p.Game.ValidateRetail();
+   if(p.Game.IsRev1&&(choice.Update!=""||choice.Dlc.Count>0))throw new InvalidDataException("US Rev 1 already supplies its disc DLC. Remove external DLC and Title Update 3; Reinstated compatibility is prepared automatically.");
    foreach(var s in choice.LanguageSources.Distinct(StringComparer.OrdinalIgnoreCase)){var d=new Disc(s);p.Languages.Add(d);d.ValidateLanguage();}
    var sources=new[]{p.Game}.Concat(p.Languages).ToArray();
    foreach(var lang in choice.TextLanguages)if(!sources.Any(d=>d.Entries.Any(e=>LanguageEntry(e,lang,false))))throw new InvalidDataException("No "+lang+" display-language files found. Add the matching regional disc.");
