@@ -7,6 +7,7 @@
 #include "mod/breathing_motion.h"
 #include "reload_timing_policy.h"
 #include "manual_reload_policy.h"
+#include "backpack_reload_policy.h"
 #include "hovercraft_gunner_policy.h"
 #include "game_cvars.h"
 #include "mousehook.h"
@@ -398,6 +399,39 @@ REX_HOOK_RAW(sub_825A75A0) {
   __imp__sub_825A75A0(ctx,base);
   REX_STORE_U32(player+7904,nativeEffect);
   REX_STORE_U8(player+7912,nativeNotify);
+}
+
+// Native unequip commits magazine ammo to inventory before disposing of the
+// held weapon. Update only those ammo fields while the object is still alive;
+// never retain a weapon/model pointer after the native call.
+REX_EXTERN(__imp__sub_8254BB18);
+REX_HOOK_RAW(sub_8254BB18) {
+  const auto player=ctx.r3.u32, hand=ctx.r4.u32;
+  if(base && pdz_input::Supported() && REXCVAR_GET(pdz_backpack_reload) &&
+     hand<2 && Readable(player,4084) && LocalPlayer(base,player)) {
+    const auto weapon=REX_LOAD_U32(player+4076+hand*4);
+    if(Readable(weapon,1320) && REX_LOAD_U32(weapon+92)==player) {
+      const auto definition=REX_LOAD_U32(weapon+860);
+      const auto inventory=REX_LOAD_U32(weapon+1100);
+      const auto record=REX_LOAD_U32(weapon+1248);
+      if(inventory && Readable(definition,156) && Readable(record,4)) {
+        const auto ammo_definition=REX_LOAD_U32(record);
+        if(Readable(ammo_definition,200)) {
+          // Same shared reserve slot used by native sub_82583F80.
+          const auto type=REX_LOAD_U8(ammo_definition+199);
+          const uint64_t reserve_address=uint64_t(inventory)+52+uint32_t(type)*2;
+          if(type!=255 && reserve_address+2<=0x100000000ull &&
+             Readable(uint32_t(reserve_address),2)) {
+            const auto ammo=pdz_backpack::Reload(REX_LOAD_U16(weapon+1316),
+                REX_LOAD_U16(definition+154),REX_LOAD_U16(uint32_t(reserve_address)));
+            REX_STORE_U16(weapon+1316,ammo.magazine);
+            REX_STORE_U16(uint32_t(reserve_address),ammo.reserve);
+          }
+        }
+      }
+    }
+  }
+  __imp__sub_8254BB18(ctx,base);
 }
 
 // Block only the empty-magazine update's automatic reload gate. Manual

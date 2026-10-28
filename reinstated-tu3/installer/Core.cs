@@ -194,8 +194,36 @@ namespace PdzInstaller {
     if(plan.BonusDisc!=null){phase="Installing Bonus DVD content";foreach(var e in plan.BonusDisc.Entries){detail=e.Name;plan.BonusDisc.Copy(e,Safe.Child(stage,"bonus/contents/"+e.Name),progress,token);}}
     phase="Finishing installation";detail="";token.ThrowIfCancellationRequested();
     string exe=plan.UsesTu3?"PDZReinstatedTU3.exe":"perfectdarkzerorecomp.exe";
-    string hardware="gpu_plugin = \"xenos\"\npdz_unlock_all_missions = false\npdz_walk_speed = 20.0\npdz_cutscene_timing_fix = true\nmnk_mode = true\nmnk_mouse = true\npdz_mouse_menu_navigation = true\nasync_shader_compilation = true\nuser_language = "+TextIds[plan.Choice.TextLanguage]+"\npdz_dub_language = "+Array.IndexOf(DubNames,plan.Choice.Dub)+"\ndev_debug_runtime = false\n";
+    string hardware="gpu_plugin = \"xenos\"\npdz_unlock_all_missions = false\npdz_walk_speed = 20.0\npdz_cutscene_timing_fix = true\nmnk_mode = true\nmnk_mouse = true\npdz_mouse_menu_navigation = true\nasync_shader_compilation = true\nasync_pipeline_wait_ms = 0\npdz_pause_for_shaders = false\nvulkan_async_skip_incomplete_frames = false\nvsync = false\npresent_letterbox = false\npdz_cutscene_60fps = false\nuser_language = "+TextIds[plan.Choice.TextLanguage]+"\npdz_dub_language = "+Array.IndexOf(DubNames,plan.Choice.Dub)+"\ndev_debug_runtime = false\n";
     Safe.Write(System.IO.Path.Combine(stage,"settings/hardware.toml"),hardware);
+    Safe.Write(System.IO.Path.Combine(stage,"settings/keybindings.toml"),@"keybind_a = ""E""
+keybind_b = ""WheelUp""
+keybind_back = ""Z,Tab""
+keybind_dpad_down = ""Down""
+keybind_dpad_left = ""Left""
+keybind_dpad_right = ""Right""
+keybind_dpad_up = ""Up""
+keybind_guide = """"
+keybind_left_shoulder = ""MMB""
+keybind_left_trigger = ""Q,I""
+keybind_lstick_down = ""S""
+keybind_lstick_left = ""A""
+keybind_lstick_press = ""Control""
+keybind_lstick_right = ""D""
+keybind_lstick_up = ""W""
+keybind_right_shoulder = ""Space""
+keybind_right_trigger = ""LMB""
+keybind_rstick_down = ""Down""
+keybind_rstick_left = ""Left""
+keybind_rstick_press = ""K""
+keybind_rstick_right = ""Right""
+keybind_rstick_up = ""Up""
+keybind_start = ""Escape""
+keybind_walk = ""Shift""
+keybind_x = ""R""
+keybind_y = ""WheelDown""
+bind_third_person = ""V""
+");
     Safe.Write(System.IO.Path.Combine(stage,"installation.json"),new JavaScriptSerializer().Serialize(new{version=Manifest().version,titleUpdate=plan.UsesTu3?3:0,sourceRevision=plan.Game.IsRev1?1:0,sharedShaders=plan.Payload.Any(f=>f.group=="shaders-tu3"),displayLanguage=plan.Choice.TextLanguage,dub=plan.Choice.Dub,installedAt=DateTime.UtcNow.ToString("o")}));
     if(Directory.Exists(plan.Choice.Target)||File.Exists(plan.Choice.Target))throw new IOException("The destination was created by another application. No existing files were replaced.");
     string vlcSupport=Path.Combine(stage,"bonus/vlc");if(Directory.Exists(vlcSupport))File.SetAttributes(vlcSupport,File.GetAttributes(vlcSupport)|FileAttributes.Hidden);

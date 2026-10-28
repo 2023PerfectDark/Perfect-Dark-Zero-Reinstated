@@ -55,6 +55,11 @@ class OverlayDialog final : public rex::ui::ImGuiDialog {
   static constexpr const char* tabs_[7]={"Controls","Graphics","Gameplay","Cheats","Achievements","Interface","Display"};
   bool saved_=false, was_open_=false, had_gamepad_=false;
   unsigned previous_=Closed;
+  unsigned slide_page_=Closed;
+  int slide_tab_=-1,slide_direction_=1;
+  double slide_started_=-1;
+  float smooth_scale_=0,smooth_width_=0;
+
   ImGuiConfigFlags old_nav_=0;
   std::string notes_;
   void DrawResults(const ImGuiViewport* vp,float scale) {
@@ -150,11 +155,18 @@ class OverlayDialog final : public rex::ui::ImGuiDialog {
     // Original 320x240 menu coordinates, rasterized at the current viewport
     // resolution (4.5x at 1080p, 9x at 2160p). Never stretch the font aspect.
     const bool extended=page.load()==Extended;
-    const float option_width=300.f*float(std::clamp(REXCVAR_GET(pdz_ui_width),.85,1.4));
+    const float target_width=300.f*float(std::clamp(REXCVAR_GET(pdz_ui_width),.85,1.4));
+    if(smooth_width_<=0||!was_open_)smooth_width_=target_width;
+    smooth_width_+=(target_width-smooth_width_)*(1.f-std::exp(-18.f*ImGui::GetIO().DeltaTime));
+    const float option_width=smooth_width_;
     const float logical_width=extended?option_width+146.f:340.f;
     const float requested=std::min(vp->Size.y/340.f,vp->Size.x/500.f)*float(std::clamp(REXCVAR_GET(pdz_ui_scale),.65,1.4));
-    const float scale=std::min({requested,vp->Size.y/286.f,vp->Size.x/(logical_width+36.f)});
+    const float target_scale=std::min({requested,vp->Size.y/286.f,vp->Size.x/(logical_width+36.f)});
+    if(smooth_scale_<=0||!was_open_)smooth_scale_=target_scale;
+    smooth_scale_+=(target_scale-smooth_scale_)*(1.f-std::exp(-18.f*ImGui::GetIO().DeltaTime));
+    const float scale=std::min({smooth_scale_,vp->Size.y/286.f,vp->Size.x/(logical_width+36.f)});
     classic_.scale=scale;
+    classic_.hover_selected=false;
     xp_.Draw(vp,scale);
     {
       std::lock_guard lock(notice_mutex);
@@ -184,7 +196,7 @@ class OverlayDialog final : public rex::ui::ImGuiDialog {
         io.BackendFlags=(io.BackendFlags & ~ImGuiBackendFlags_HasGamepad)|(had_gamepad_?ImGuiBackendFlags_HasGamepad:0);
         for(auto key:{ImGuiKey_GamepadFaceDown,ImGuiKey_GamepadFaceRight,ImGuiKey_GamepadDpadUp,ImGuiKey_GamepadDpadDown,ImGuiKey_GamepadDpadLeft,ImGuiKey_GamepadDpadRight})io.AddKeyEvent(key,false);
       }
-      was_open_=false;previous_=Closed;
+      was_open_=false;previous_=Closed;slide_page_=Closed;slide_tab_=-1;
       std::lock_guard lock(input_mutex);keys.clear();return;
     }
     if(!was_open_)had_gamepad_=(io.BackendFlags&ImGuiBackendFlags_HasGamepad)!=0;
@@ -215,8 +227,20 @@ class OverlayDialog final : public rex::ui::ImGuiDialog {
     }
     if(!ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId) && (ImGui::IsKeyPressed(ImGuiKey_Escape)||ImGui::IsMouseClicked(1)))back=true;
     bool changed=previous_!=current||(current==Extended&&previous_tab_!=tab_);
+    const int animated_tab=current==Extended?tab_:current==Cheats?cheat_tab_:0;
+    if(slide_page_!=current||slide_tab_!=animated_tab){
+      const int count=current==Extended?7:3;
+      if(slide_page_==current&&slide_tab_>=0){
+        const int forward=(animated_tab-slide_tab_+count)%count;
+        slide_direction_=forward<=count/2?1:-1;
+      }else slide_direction_=1;
+      slide_started_=ImGui::GetTime();slide_page_=current;slide_tab_=animated_tab;
+    }
+    const float slide_t=std::clamp(float((ImGui::GetTime()-slide_started_)/.36),0.f,1.f);
+    const float slide_remaining=(1.f-slide_t)*(1.f-slide_t)*(1.f-slide_t);
+
     if(current==Changelog&&changed)ReadNotes();
-    ImGui::SetNextWindowPos({vp->Pos.x+vp->Size.x*.5f,vp->Pos.y+vp->Size.y*.5f},0,{.5f,.5f});
+    ImGui::SetNextWindowPos({vp->Pos.x+vp->Size.x*.5f+slide_direction_*vp->Size.x*.65f*slide_remaining,vp->Pos.y+vp->Size.y*.5f},0,{.5f,.5f});
     const float panel_width=(current==Progression||current==Cheats)?340.f:current==Changelog?320.f:current==Extended?logical_width:240.f;
     const float panel_height=(current==Extended||current==Progression||current==Cheats)?252.f:current==Changelog?220.f:158.f;
     ImGui::SetNextWindowSize({panel_width*scale,panel_height*scale});
@@ -251,7 +275,7 @@ class OverlayDialog final : public rex::ui::ImGuiDialog {
       tabs->AddTriangleFilled({x+(previous?-4:4)*scale,y},{x+(previous?3:-3)*scale,y-4*scale},{x+(previous?3:-3)*scale,y+4*scale},tint);
       const char* caption=previous?"Updates":"Changelogs";
       const int begin=tabs->VtxBuffer.Size;
-      classic_.font.Text(tabs,{x,y+7*scale},scale*.7f,tint,caption);
+      classic_.font.Text(tabs,{x,y+7*scale},scale,tint,caption);
       for(int i=begin;i<tabs->VtxBuffer.Size;++i){
         auto& point=tabs->VtxBuffer[i].pos;
         float dx=point.x-x,dy=point.y-(y+7*scale);
@@ -275,7 +299,7 @@ class OverlayDialog final : public rex::ui::ImGuiDialog {
         const ImU32 tint=hover?IM_COL32_WHITE:IM_COL32(190,255,255,220);
         d->AddTriangleFilled({x+direction*4*scale,y},{x-direction*3*scale,y-4*scale},{x-direction*3*scale,y+4*scale},tint);
         const int begin=d->VtxBuffer.Size;
-        classic_.font.Text(d,{x,y+7*scale},scale*.7f,tint,current==Cheats?cheat_tabs_[next]:tabs_[next]);
+        classic_.font.Text(d,{x,y+7*scale},scale,tint,current==Cheats?cheat_tabs_[next]:tabs_[next]);
         for(int i=begin;i<d->VtxBuffer.Size;++i){auto& p=d->VtxBuffer[i].pos;float dx=p.x-x,dy=p.y-y-7*scale;p={x-dy,y+7*scale+dx};}
         if(hover&&ImGui::IsMouseClicked(0)&&!ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId)){active_tab=next;saved_=false;}
       }
@@ -288,6 +312,9 @@ class OverlayDialog final : public rex::ui::ImGuiDialog {
     if(current==Extended&&previous_tab_!=tab_)changed=true;
     // Subtle translucent blue light bands, as in the reference's glass panel.
     panel->AddRectFilledMultiColor(pos,{pos.x+size.x,pos.y+size.y},IM_COL32(0,12,65,80),IM_COL32(0,8,45,35),IM_COL32(0,0,25,80),IM_COL32(0,20,65,45));
+    // Slow time-based light sweep, independent of frame rate.
+    const float sweep=std::fmod(float(ImGui::GetTime())*18.f,size.y/scale)*scale;
+    panel->AddRectFilledMultiColor({pos.x,pos.y+sweep},{pos.x+size.x,pos.y+std::min(sweep+8*scale,size.y)},IM_COL32(0,180,220,0),IM_COL32(0,180,220,0),IM_COL32(0,180,220,14),IM_COL32(0,180,220,14));
     // menugfx_render_dialog_background: one logical pixel on three edges.
     panel->AddRectFilled({pos.x,pos.y},{pos.x+scale,pos.y+size.y},ImGui::ColorConvertFloat4ToU32(Colour(blue.border)));
     panel->AddRectFilled({pos.x+size.x-scale,pos.y},{pos.x+size.x,pos.y+size.y},ImGui::ColorConvertFloat4ToU32(Colour(blue.edge)));
@@ -416,25 +443,30 @@ class OverlayDialog final : public rex::ui::ImGuiDialog {
     ImGui::PopID();ImGui::PopID();
     if(current==Extended){
       ImGui::SameLine(0,6*scale);
-      ImGui::BeginChild("option-help",{0,-16*scale},true,ImGuiWindowFlags_NoScrollbar);
+      ImGui::PushStyleColor(ImGuiCol_ChildBg,IM_COL32(0,12,40,205));
+      ImGui::BeginChild("option-help",{0,-16*scale},true);
+      const auto help_text=tab_==4?std::string_view("Green achievements are unlocked. Muted red achievements are locked; their requirements appear in gray."):HelpFor(classic_.selected_help);
+      const auto impact_text=tab_==4?std::string_view{}:ImpactFor(classic_.selected_help);
+      // Fit the actual wrapped paragraphs, with a readable lower bound. Very
+      // long descriptions can scroll instead of shrinking into tiny text.
+      const auto help_space=ImGui::GetContentRegionAvail();
+      float help_ratio=.96f;
+      while(help_ratio>.82f &&
+            (classic_.WrappedLines(help_text,help_space.x,scale*help_ratio)+
+             classic_.WrappedLines(impact_text,help_space.x,scale*help_ratio)+2)*
+                (13*scale*help_ratio+scale)>help_space.y-12*scale)
+        help_ratio-=.02f;
+      classic_.scale=scale*help_ratio;
       classic_.Text("Help",IM_COL32(255,210,80,255));
       ImGui::Separator();
-      classic_.Wrapped(tab_==4?"Green achievements are unlocked. Muted red achievements are locked; their requirements appear in gray.":HelpFor(classic_.selected_help));
+      classic_.Wrapped(help_text);
       if(tab_!=4){
         ImGui::Separator();
-        classic_.Wrapped(ImpactFor(classic_.selected_help),IM_COL32(255,180,80,255));
+        classic_.Wrapped(impact_text,IM_COL32(170,205,225,255));
       }
-      ImGui::Dummy({0,8*scale});
-      // Stable framed slot for future per-option screenshot comparisons.
-      const auto p=ImGui::GetCursorScreenPos();
-      const float w=ImGui::GetContentRegionAvail().x;
-      ImGui::GetWindowDrawList()->AddRect(p,{p.x+w,p.y+w*9/16},IM_COL32(65,130,160,180));
-      ImGui::Dummy({w,w*9/16});
-      classic_.Wrapped("Picture preview",IM_COL32(135,155,170,255));
-      if(classic_.selected_help=="Sniper headshot gore"||classic_.selected_help=="First-person body")
-        classic_.Wrapped("Off / On comparison",IM_COL32(135,155,170,255));
-      if(tab_==5)classic_.Wrapped("Menu and subtitle previews",IM_COL32(135,155,170,255));
+      classic_.scale=scale;
       ImGui::EndChild();
+      ImGui::PopStyleColor();
     }
     ImGui::Separator();
     if(classic_.Row("Back"))back=true;

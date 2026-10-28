@@ -56,6 +56,7 @@ REXCVAR_DECLARE(bool, pdz_invincibility);
 
 REXCVAR_DECLARE(bool, pdz_custom_mode);
 REXCVAR_DECLARE(bool, pdz_manual_reload);
+REXCVAR_DECLARE(bool, pdz_backpack_reload);
 REXCVAR_DECLARE(double, pdz_enemy_health);
 REXCVAR_DECLARE(double, pdz_enemy_damage);
 REXCVAR_DECLARE(double, pdz_enemy_accuracy);

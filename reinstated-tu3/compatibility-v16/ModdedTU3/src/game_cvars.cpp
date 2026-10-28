@@ -6,7 +6,7 @@ REXCVAR_DEFINE_BOOL(pdz_ignore_weapon_size, false, "Gameplay", "Experimental: ig
 
 REXCVAR_DEFINE_BOOL(pdz_mouse_menu_navigation, true, "Gameplay", "Mouse movement/wheel selects menu options; click accepts; right-click backs out");
 REXCVAR_DEFINE_BOOL(pdz_menu_mode, false, "Gameplay", "Force mouse menu navigation (F8); disable to resume camera look");
-REXCVAR_DEFINE_BOOL(pdz_pause_for_shaders, true, "Graphics",
+REXCVAR_DEFINE_BOOL(pdz_pause_for_shaders, false, "Graphics",
     "Hold mission loading and pause presentation for pending shader work, with a progress overlay");
 REXCVAR_DEFINE_BOOL(pdz_wheel_ads, true, "Gameplay", "Right mouse + wheel adjusts analog aim trigger pressure");
 REXCVAR_DEFINE_INT32(pdz_ads_pressure, 128, "Gameplay", "Mouse aim trigger pressure; wheel changes this while aiming")
@@ -41,7 +41,7 @@ REXCVAR_DEFINE_BOOL(dev_debug_runtime, false, "Debug",
 
 REXCVAR_DEFINE_BOOL(pdz_all_weapon_ads, false, "Gameplay", "Experimental: native weapon aim pose while holding RMB at minimum zoom");
 
-REXCVAR_DEFINE_BOOL(pdz_cutscene_60fps, true, "Gameplay", "Cap scripted/locked cameras and front-end to 60 FPS; normal gameplay remains unrestricted");
+REXCVAR_DEFINE_BOOL(pdz_cutscene_60fps, false, "Gameplay", "Cap scripted/locked cameras and front-end to 60 FPS; normal gameplay remains unrestricted");
 REXCVAR_DEFINE_BOOL(pdz_physics_timing_fix, true, "Gameplay", "Keep physics solver steps aligned with collider updates above 60 FPS");
 REXCVAR_DEFINE_BOOL(pdz_visible_holsters, true, "Gameplay", "Show stowed weapons on Joanna's back and thighs in solo campaign");
 REXCVAR_DEFINE_BOOL(pdz_first_person_body, false, "Gameplay", "Experimental body visibility; may flicker and overlap first-person arms");
@@ -92,6 +92,7 @@ REXCVAR_DEFINE_BOOL(pdz_invincibility, false, "Cheats", "Prevent local player he
 
 REXCVAR_DEFINE_BOOL(pdz_custom_mode, false, "Challenges", "Perfect Dark Zero custom mission mode");
 REXCVAR_DEFINE_BOOL(pdz_manual_reload, false, "Challenges", "Require the reload button when the magazine is empty");
+REXCVAR_DEFINE_BOOL(pdz_backpack_reload, false, "Cheats", "Reload stowed weapons from reserve ammunition");
 REXCVAR_DEFINE_DOUBLE(pdz_enemy_health, 100.0, "Challenges", "Enemy health percentage").range(10.0, 1000.0);
 REXCVAR_DEFINE_DOUBLE(pdz_enemy_damage, 100.0, "Challenges", "Enemy damage percentage").range(10.0, 1000.0);
 REXCVAR_DEFINE_DOUBLE(pdz_enemy_accuracy, 100.0, "Challenges", "Enemy accuracy percentage").range(10.0, 1000.0);

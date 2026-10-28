@@ -830,7 +830,7 @@ index f135ae0..cc9e82e 100644
  
  }  // namespace rex::graphics
 diff --git a/include/rex/graphics/d3d12/command_processor.h b/include/rex/graphics/d3d12/command_processor.h
-index abc7446..6349f96 100644
+index abc7446..f7e803b 100644
 --- a/include/rex/graphics/d3d12/command_processor.h
 +++ b/include/rex/graphics/d3d12/command_processor.h
 @@ -220,6 +220,13 @@ class D3D12CommandProcessor : public CommandProcessor {
@@ -859,13 +859,16 @@ index abc7446..6349f96 100644
    bool CanEndSubmissionImmediately() const;
    bool AwaitAllQueueOperationsCompletion() {
      CheckSubmissionCompletion(GetCurrentSubmission());
-@@ -341,6 +349,17 @@ class D3D12CommandProcessor : public CommandProcessor {
+@@ -341,6 +349,20 @@ class D3D12CommandProcessor : public CommandProcessor {
    // Need to await submission completion before calling.
    void ClearCommandAllocatorCache();
  
 +  // At the end of a frame, applies a pending RequestDrawResolutionScale
 +  // request, recreating everything that depends on the draw resolution scale.
 +  void ApplyDrawResolutionScaleRequest();
++  bool CreateGuestRootSignatures();
++  std::filesystem::path live_cache_root_;
++  uint32_t live_cache_title_ = 0;
 +  // Creates the texture cache and initializes the render target cache
 +  // (previously shut down) for the draw resolution scale, cleaning up if failed.
 +  bool CreateDrawResolutionScaleDependentCaches(uint32_t draw_resolution_scale_x,
@@ -877,7 +880,7 @@ index abc7446..6349f96 100644
    // Request descriptors and automatically rebind the descriptor heap on the
    // draw command list. Refer to D3D12DescriptorHeapPool::Request for partial /
    // full update explanation. Doesn't work when bindless descriptors are used.
-@@ -384,8 +403,26 @@ class D3D12CommandProcessor : public CommandProcessor {
+@@ -384,8 +406,26 @@ class D3D12CommandProcessor : public CommandProcessor {
      uint32_t written_size[2] = {0, 0};
      uint32_t current_index = 0;
      uint64_t last_used_frame = 0;
@@ -904,7 +907,7 @@ index abc7446..6349f96 100644
    static constexpr uint32_t kReadbackBufferSizeIncrement = 16 * 1024 * 1024;
    static constexpr size_t kMaxReadbackBuffers = 256;
    static constexpr uint64_t kReadbackBufferEvictionAgeFrames = 60;
-@@ -732,6 +769,14 @@ class D3D12CommandProcessor : public CommandProcessor {
+@@ -732,6 +772,14 @@ class D3D12CommandProcessor : public CommandProcessor {
    ID3D12Resource* readback_buffer_ = nullptr;
    uint32_t readback_buffer_size_ = 0;
    std::unordered_map<uint64_t, ReadbackBuffer> readback_buffers_;
@@ -920,7 +923,7 @@ index abc7446..6349f96 100644
  
    // Resolve downscale compute shader for scaled resolution readback,
 diff --git a/include/rex/graphics/d3d12/pipeline_cache.h b/include/rex/graphics/d3d12/pipeline_cache.h
-index aa229b0..45f7db7 100644
+index aa229b0..ed1ea1c 100644
 --- a/include/rex/graphics/d3d12/pipeline_cache.h
 +++ b/include/rex/graphics/d3d12/pipeline_cache.h
 @@ -15,6 +15,7 @@
@@ -931,7 +934,11 @@ index aa229b0..45f7db7 100644
  #include <functional>
  #include <memory>
  #include <mutex>
-@@ -68,6 +69,15 @@ class PipelineCache {
+@@ -65,9 +66,19 @@ class PipelineCache {
+   void InitializeShaderStorage(const std::filesystem::path& cache_root, uint32_t title_id,
+                                bool blocking, std::function<void()> completion_callback = nullptr);
+   void ShutdownShaderStorage();
++  void SetHybridSupported(bool supported) { zpd_hybrid_supported_ = supported; }
  
    void EndSubmission();
    bool IsCreatingPipelines();
@@ -947,7 +954,7 @@ index aa229b0..45f7db7 100644
    // Waits for any pipeline creation needed by the current draw path to finish
    // before state is consumed. This was added so strict ZPD query paths stop
    // racing pipeline compilation and then blocking work on incomplete state.
-@@ -105,6 +115,12 @@ class PipelineCache {
+@@ -105,6 +116,12 @@ class PipelineCache {
      return reinterpret_cast<const Pipeline*>(handle)->state.load(std::memory_order_acquire);
    }
    ID3D12PipelineState* AwaitD3D12PipelineByHandle(void* handle);
@@ -960,7 +967,7 @@ index aa229b0..45f7db7 100644
  
    // With async compilation, only valid when GetD3D12PipelineByHandle returns
    // non-null for the handle (the root signature is set by the creation thread
-@@ -116,7 +132,15 @@ class PipelineCache {
+@@ -116,7 +133,15 @@ class PipelineCache {
      return reinterpret_cast<const Pipeline*>(handle)->description.description.host_msaa_samples;
    }
  
@@ -976,7 +983,7 @@ index aa229b0..45f7db7 100644
    // Update PipelineDescription::kVersion if any of the Pipeline* enums are
    // changed!
  
-@@ -394,6 +418,9 @@ class PipelineCache {
+@@ -394,6 +419,9 @@ class PipelineCache {
    struct Pipeline {
      // nullptr if creation has failed or still pending.
      std::atomic<ID3D12PipelineState*> state{nullptr};
@@ -986,7 +993,7 @@ index aa229b0..45f7db7 100644
      PipelineRuntimeDescription description;
      // For background creation: stores the untranslated shaders.
      // Background thread translates both VS and PS together, then creates the
-@@ -439,6 +466,25 @@ class PipelineCache {
+@@ -439,6 +467,25 @@ class PipelineCache {
    // index).
    ShaderStorageWriter<PipelineStoredDescription> storage_writer_;
  
@@ -7782,7 +7789,7 @@ index 829987b..5ef6ce1 100644
      pipeline/shader/translator.cpp
      pipeline/shader/translator_disasm.cpp
 diff --git a/src/graphics/command_processor.cpp b/src/graphics/command_processor.cpp
-index 46ae9dc..7fef8bf 100644
+index 46ae9dc..8c25cd2 100644
 --- a/src/graphics/command_processor.cpp
 +++ b/src/graphics/command_processor.cpp
 @@ -11,6 +11,7 @@
@@ -7978,7 +7985,7 @@ index 46ae9dc..7fef8bf 100644
    }
    return ZPDMode::kFast;
  }
-@@ -188,6 +298,25 @@ bool CommandProcessor::Initialize() {
+@@ -188,6 +298,34 @@ bool CommandProcessor::Initialize() {
      }
    }
  
@@ -7996,6 +8003,15 @@ index 46ae9dc..7fef8bf 100644
 +    });
 +  }
 +
++  // MSAA support is cached alongside render-target resources. Rebuild those
++  // resources on the GPU thread at a completed frame, even at the same scale.
++  for (const char* name : {"native_2x_msaa", "render_target_path_d3d12"})
++  rex::cvar::RegisterChangeCallback(name, [](std::string_view, std::string_view) {
++    uint32_t x, y;
++    TextureCache::GetConfigDrawResolutionScale(x, y);
++    RequestDrawResolutionScale(x, y, true);
++  });
++
 +  // readback_resolve_cpu_reads_only: the guest's accesses to resolve
 +  // destinations that aren't copied back.
 +  resolve_read_callback_handle_ =
@@ -8004,7 +8020,7 @@ index 46ae9dc..7fef8bf 100644
    worker_running_ = true;
    worker_thread_ = system::object_ref<system::XHostThread>(
        new system::XHostThread(kernel_state_, 128 * 1024, 0, [this]() {
-@@ -201,10 +330,75 @@ bool CommandProcessor::Initialize() {
+@@ -201,10 +339,79 @@ bool CommandProcessor::Initialize() {
  }
  
  void CommandProcessor::Shutdown() {
@@ -8049,10 +8065,14 @@ index 46ae9dc..7fef8bf 100644
 +void CommandProcessor::RequestDrawResolutionScale(uint32_t x, uint32_t y, bool force_rebuild) {
 +  x = std::clamp(x, UINT32_C(1), TextureCache::kMaxDrawResolutionScaleAlongAxis);
 +  y = std::clamp(y, UINT32_C(1), TextureCache::kMaxDrawResolutionScaleAlongAxis);
-+  pending_draw_resolution_scale_request.store(
-+      x | (y << 8) | (force_rebuild ? kDrawResolutionScaleRequestForceRebuild : 0) |
-+          kDrawResolutionScaleRequestValid,
-+      std::memory_order_release);
++  uint32_t previous = pending_draw_resolution_scale_request.load(std::memory_order_acquire);
++  uint32_t desired;
++  do {
++    desired = x | (y << 8) | kDrawResolutionScaleRequestValid |
++        ((force_rebuild || (previous & kDrawResolutionScaleRequestForceRebuild)) ?
++             kDrawResolutionScaleRequestForceRebuild : 0);
++  } while (!pending_draw_resolution_scale_request.compare_exchange_weak(
++      previous, desired, std::memory_order_release, std::memory_order_acquire));
 +}
 +
 +bool CommandProcessor::TakeDrawResolutionScaleRequest(uint32_t& x_out, uint32_t& y_out,
@@ -8080,7 +8100,7 @@ index 46ae9dc..7fef8bf 100644
  }
  
  void CommandProcessor::InitializeShaderStorage(const std::filesystem::path& cache_root,
-@@ -276,6 +470,7 @@ void CommandProcessor::SetDesiredSwapPostEffect(SwapPostEffect swap_post_effect)
+@@ -276,6 +483,7 @@ void CommandProcessor::SetDesiredSwapPostEffect(SwapPostEffect swap_post_effect)
  }
  
  void CommandProcessor::WorkerThreadMain() {
@@ -8088,7 +8108,7 @@ index 46ae9dc..7fef8bf 100644
    if (!SetupContext()) {
      rex::FatalError("Unable to setup command processor internal state");
      return;
-@@ -295,21 +490,24 @@ void CommandProcessor::WorkerThreadMain() {
+@@ -295,21 +503,24 @@ void CommandProcessor::WorkerThreadMain() {
        // We spin here waiting for new ones, as the overhead of waiting on our
        // event is too high.
        PrepareForWait();
@@ -8116,7 +8136,7 @@ index 46ae9dc..7fef8bf 100644
          loop_count++;
          write_ptr_index = write_ptr_index_.load();
        } while (worker_running_ && pending_fns_.empty() &&
-@@ -526,7 +724,7 @@ void CommandProcessor::WriteRegister(uint32_t index, uint32_t value) {
+@@ -526,7 +737,7 @@ void CommandProcessor::WriteRegister(uint32_t index, uint32_t value) {
                          rex::memory::Reinterpret<uint32_t>(new_gamma_ramp_rw_index));
          }
          if (write_gamma_ramp_component) {
@@ -8125,7 +8145,7 @@ index 46ae9dc..7fef8bf 100644
          }
        } break;
  
-@@ -561,7 +759,7 @@ void CommandProcessor::WriteRegister(uint32_t index, uint32_t value) {
+@@ -561,7 +772,7 @@ void CommandProcessor::WriteRegister(uint32_t index, uint32_t value) {
                          rex::memory::Reinterpret<uint32_t>(new_gamma_ramp_rw_index));
          }
          if (write_gamma_ramp_component) {
@@ -8134,7 +8154,7 @@ index 46ae9dc..7fef8bf 100644
          }
        } break;
  
-@@ -594,7 +792,7 @@ void CommandProcessor::WriteRegister(uint32_t index, uint32_t value) {
+@@ -594,7 +805,7 @@ void CommandProcessor::WriteRegister(uint32_t index, uint32_t value) {
          WriteRegister(XE_GPU_REG_DC_LUT_RW_INDEX,
                        rex::memory::Reinterpret<uint32_t>(new_gamma_ramp_rw_index));
          if (gamma_ramp_write_enable_mask) {
@@ -8143,7 +8163,7 @@ index 46ae9dc..7fef8bf 100644
          }
        } break;
      }
-@@ -721,12 +919,623 @@ void CommandProcessor::MakeCoherent() {
+@@ -721,12 +932,623 @@ void CommandProcessor::MakeCoherent() {
  void CommandProcessor::PrepareForWait() {
    if (zpd_mode_ == ZPDMode::kStrict && zpd_awaited_report_count_) {
      PrepareZPDForWait();
@@ -8767,7 +8787,7 @@ index 46ae9dc..7fef8bf 100644
  void CommandProcessor::ReturnFromWait() {}
  
  uint32_t CommandProcessor::ExecutePrimaryBuffer(uint32_t read_index, uint32_t write_index) {
-@@ -746,6 +1555,7 @@ uint32_t CommandProcessor::ExecutePrimaryBuffer(uint32_t read_index, uint32_t wr
+@@ -746,6 +1568,7 @@ uint32_t CommandProcessor::ExecutePrimaryBuffer(uint32_t read_index, uint32_t wr
    auto remaining = reader.read_count();
    auto remaining_at_writeback = remaining;
    do {
@@ -8775,7 +8795,7 @@ index 46ae9dc..7fef8bf 100644
      if (!ExecutePacket(&reader)) {
        // This probably should be fatal - but we're going to continue anyways.
        REXGPU_ERROR("**** PRIMARY RINGBUFFER: Failed to execute packet.");
-@@ -783,6 +1593,7 @@ void CommandProcessor::ExecuteIndirectBuffer(uint32_t ptr, uint32_t count) {
+@@ -783,6 +1606,7 @@ void CommandProcessor::ExecuteIndirectBuffer(uint32_t ptr, uint32_t count) {
    memory::RingBuffer reader(memory_->TranslatePhysical(ptr), count * sizeof(uint32_t));
    reader.set_write_offset(count * sizeof(uint32_t));
    do {
@@ -8783,7 +8803,7 @@ index 46ae9dc..7fef8bf 100644
      if (!ExecutePacket(&reader)) {
        // Return up a level if we encounter a bad packet.
        REXGPU_ERROR("**** INDIRECT RINGBUFFER: Failed to execute packet.");
-@@ -1082,6 +1893,60 @@ bool CommandProcessor::ExecutePacketType3_INTERRUPT(memory::RingBuffer* reader,
+@@ -1082,6 +1906,60 @@ bool CommandProcessor::ExecutePacketType3_INTERRUPT(memory::RingBuffer* reader,
    return true;
  }
  
@@ -8844,7 +8864,7 @@ index 46ae9dc..7fef8bf 100644
  bool CommandProcessor::ExecutePacketType3_XE_SWAP(memory::RingBuffer* reader, uint32_t packet,
                                                    uint32_t count) {
    SCOPE_profile_cpu_f("gpu");
-@@ -1114,6 +1979,7 @@ bool CommandProcessor::ExecutePacketType3_XE_SWAP(memory::RingBuffer* reader, ui
+@@ -1114,6 +1992,7 @@ bool CommandProcessor::ExecutePacketType3_XE_SWAP(memory::RingBuffer* reader, ui
    uint32_t frontbuffer_height = reader->ReadAndSwap<uint32_t>();
    reader->AdvanceRead((count - 4) * sizeof(uint32_t));
  
@@ -8852,7 +8872,7 @@ index 46ae9dc..7fef8bf 100644
    IssueSwap(frontbuffer_ptr, frontbuffer_width, frontbuffer_height);
  
    // counter_ is the vblank counter (advanced by MarkVblank), not a swap counter:
-@@ -1202,6 +2068,9 @@ bool CommandProcessor::ExecutePacketType3_WAIT_REG_MEM(memory::RingBuffer* reade
+@@ -1202,6 +2081,9 @@ bool CommandProcessor::ExecutePacketType3_WAIT_REG_MEM(memory::RingBuffer* reade
          }
          rex::thread::SyncMemory();
          ReturnFromWait();
@@ -8862,7 +8882,7 @@ index 46ae9dc..7fef8bf 100644
  
          if (!worker_running_) {
            // Short-circuited exit.
-@@ -1209,6 +2078,7 @@ bool CommandProcessor::ExecutePacketType3_WAIT_REG_MEM(memory::RingBuffer* reade
+@@ -1209,6 +2091,7 @@ bool CommandProcessor::ExecutePacketType3_WAIT_REG_MEM(memory::RingBuffer* reade
          }
        } else {
          rex::thread::MaybeYield();
@@ -8870,7 +8890,7 @@ index 46ae9dc..7fef8bf 100644
        }
      }
    } while (!matched);
-@@ -1925,7 +2795,9 @@ void CommandProcessor::QueueZPDReport(uint32_t report_address) {
+@@ -1925,7 +2808,9 @@ void CommandProcessor::QueueZPDReport(uint32_t report_address) {
  
    ZPDReport& report = zpd_current_report_;
    report.address = report_address;
@@ -8881,7 +8901,7 @@ index 46ae9dc..7fef8bf 100644
      // See EVENT_WRITE_ZPD for additional information on the pending sentinel.
      const uint32_t kPendingSentinel = rex::byte_swap(0xFFFFFEEDu);
      const auto* guest =
-@@ -2169,6 +3041,14 @@ void CommandProcessor::PrepareZPDForWait() {
+@@ -2169,6 +3054,14 @@ void CommandProcessor::PrepareZPDForWait() {
    PumpPendingRetire();
  }
  
@@ -8897,7 +8917,7 @@ index 46ae9dc..7fef8bf 100644
    bool rebase_needed = false;
    while (!zpd_reports_.empty()) {
 diff --git a/src/graphics/d3d12/command_processor.cpp b/src/graphics/d3d12/command_processor.cpp
-index ca31b13..c0107db 100644
+index ca31b13..3a59edc 100644
 --- a/src/graphics/d3d12/command_processor.cpp
 +++ b/src/graphics/d3d12/command_processor.cpp
 @@ -25,6 +25,8 @@
@@ -8909,7 +8929,233 @@ index ca31b13..c0107db 100644
  #include <rex/graphics/util/smaa_textures.h>
  #include <rex/graphics/xenos.h>
  #include <rex/kernel/xboxkrnl/video.h>
-@@ -1524,42 +1526,7 @@ bool D3D12CommandProcessor::SetupContext() {
+@@ -121,6 +123,8 @@ void D3D12CommandProcessor::InvalidateGpuMemory() {
+ void D3D12CommandProcessor::InitializeShaderStorage(const std::filesystem::path& cache_root,
+                                                     uint32_t title_id, bool blocking,
+                                                     std::function<void()> completion_callback) {
++  live_cache_root_ = cache_root;
++  live_cache_title_ = title_id;
+   CommandProcessor::InitializeShaderStorage(cache_root, title_id, blocking, nullptr);
+   pipeline_cache_->InitializeShaderStorage(cache_root, title_id, blocking,
+                                            std::move(completion_callback));
+@@ -869,215 +873,7 @@ bool D3D12CommandProcessor::SetupContext() {
+         device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, kSamplerHeapSize);
+   }
+ 
+-  if (bindless_resources_used_) {
+-    // Global bindless resource root signatures.
+-    // No CBV or UAV descriptor ranges with any descriptors to be allocated
+-    // dynamically (via RequestPersistentViewBindlessDescriptor or
+-    // RequestOneUseSingleViewDescriptors) should be here, because they would
+-    // overlap the unbounded SRV range, which is not allowed on Nvidia Fermi!
+-    D3D12_ROOT_SIGNATURE_DESC root_signature_bindless_desc;
+-    D3D12_ROOT_PARAMETER
+-    root_parameters_bindless[kRootParameter_Bindless_Count];
+-    root_signature_bindless_desc.NumParameters = kRootParameter_Bindless_Count;
+-    root_signature_bindless_desc.pParameters = root_parameters_bindless;
+-    root_signature_bindless_desc.NumStaticSamplers = 0;
+-    root_signature_bindless_desc.pStaticSamplers = nullptr;
+-    root_signature_bindless_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+-    // Fetch constants.
+-    {
+-      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_FetchConstants];
+-      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+-      parameter.Descriptor.ShaderRegister =
+-          uint32_t(DxbcShaderTranslator::CbufferRegister::kFetchConstants);
+-      parameter.Descriptor.RegisterSpace = 0;
+-      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+-    }
+-    // Vertex float constants.
+-    {
+-      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_FloatConstantsVertex];
+-      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+-      parameter.Descriptor.ShaderRegister =
+-          uint32_t(DxbcShaderTranslator::CbufferRegister::kFloatConstants);
+-      parameter.Descriptor.RegisterSpace = 0;
+-      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+-    }
+-    // Pixel float constants.
+-    {
+-      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_FloatConstantsPixel];
+-      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+-      parameter.Descriptor.ShaderRegister =
+-          uint32_t(DxbcShaderTranslator::CbufferRegister::kFloatConstants);
+-      parameter.Descriptor.RegisterSpace = 0;
+-      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+-    }
+-    // Pixel shader descriptor indices.
+-    {
+-      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_DescriptorIndicesPixel];
+-      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+-      parameter.Descriptor.ShaderRegister =
+-          uint32_t(DxbcShaderTranslator::CbufferRegister::kDescriptorIndices);
+-      parameter.Descriptor.RegisterSpace = 0;
+-      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+-    }
+-    // Vertex shader descriptor indices.
+-    {
+-      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_DescriptorIndicesVertex];
+-      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+-      parameter.Descriptor.ShaderRegister =
+-          uint32_t(DxbcShaderTranslator::CbufferRegister::kDescriptorIndices);
+-      parameter.Descriptor.RegisterSpace = 0;
+-      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+-    }
+-    // System constants.
+-    {
+-      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_SystemConstants];
+-      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+-      parameter.Descriptor.ShaderRegister =
+-          uint32_t(DxbcShaderTranslator::CbufferRegister::kSystemConstants);
+-      parameter.Descriptor.RegisterSpace = 0;
+-      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+-    }
+-    // Bool and loop constants.
+-    {
+-      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_BoolLoopConstants];
+-      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+-      parameter.Descriptor.ShaderRegister =
+-          uint32_t(DxbcShaderTranslator::CbufferRegister::kBoolLoopConstants);
+-      parameter.Descriptor.RegisterSpace = 0;
+-      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+-    }
+-    // Shared memory SRV and UAV.
+-    D3D12_DESCRIPTOR_RANGE root_shared_memory_view_ranges[2];
+-    {
+-      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_SharedMemory];
+-      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+-      parameter.DescriptorTable.NumDescriptorRanges =
+-          uint32_t(rex::countof(root_shared_memory_view_ranges));
+-      parameter.DescriptorTable.pDescriptorRanges = root_shared_memory_view_ranges;
+-      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+-      {
+-        auto& range = root_shared_memory_view_ranges[0];
+-        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+-        range.NumDescriptors = 1;
+-        range.BaseShaderRegister = UINT(DxbcShaderTranslator::SRVMainRegister::kSharedMemory);
+-        range.RegisterSpace = UINT(DxbcShaderTranslator::SRVSpace::kMain);
+-        range.OffsetInDescriptorsFromTableStart = 0;
+-      }
+-      {
+-        auto& range = root_shared_memory_view_ranges[1];
+-        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+-        range.NumDescriptors = 1;
+-        range.BaseShaderRegister = UINT(DxbcShaderTranslator::UAVRegister::kSharedMemory);
+-        range.RegisterSpace = 0;
+-        range.OffsetInDescriptorsFromTableStart = 1;
+-      }
+-    }
+-    // Sampler heap.
+-    D3D12_DESCRIPTOR_RANGE root_bindless_sampler_range;
+-    {
+-      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_SamplerHeap];
+-      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+-      // Will be appending.
+-      parameter.DescriptorTable.NumDescriptorRanges = 1;
+-      parameter.DescriptorTable.pDescriptorRanges = &root_bindless_sampler_range;
+-      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+-      root_bindless_sampler_range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+-      root_bindless_sampler_range.NumDescriptors = UINT_MAX;
+-      root_bindless_sampler_range.BaseShaderRegister = 0;
+-      root_bindless_sampler_range.RegisterSpace = 0;
+-      root_bindless_sampler_range.OffsetInDescriptorsFromTableStart = 0;
+-    }
+-    // View heap.
+-    D3D12_DESCRIPTOR_RANGE root_bindless_view_ranges[5];
+-    {
+-      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_ViewHeap];
+-      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+-      // Will be appending.
+-      parameter.DescriptorTable.NumDescriptorRanges = 0;
+-      parameter.DescriptorTable.pDescriptorRanges = root_bindless_view_ranges;
+-      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+-      // EDRAM.
+-      if (render_target_cache_->GetPath() == RenderTargetCache::Path::kPixelShaderInterlock) {
+-        assert_true(parameter.DescriptorTable.NumDescriptorRanges <
+-                    rex::countof(root_bindless_view_ranges));
+-        auto& range = root_bindless_view_ranges[parameter.DescriptorTable.NumDescriptorRanges++];
+-        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+-        range.NumDescriptors = 1;
+-        range.BaseShaderRegister = UINT(DxbcShaderTranslator::UAVRegister::kEdram);
+-        range.RegisterSpace = 0;
+-        range.OffsetInDescriptorsFromTableStart = UINT(SystemBindlessView::kEdramR32UintUAV);
+-      }
+-      // ZPD counter, used by ROV and RTV hybrid queries.
+-      {
+-        assert_true(parameter.DescriptorTable.NumDescriptorRanges <
+-                    rex::countof(root_bindless_view_ranges));
+-        auto& counter_range =
+-            root_bindless_view_ranges[parameter.DescriptorTable.NumDescriptorRanges++];
+-        counter_range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+-        counter_range.NumDescriptors = 1;
+-        counter_range.BaseShaderRegister = UINT(DxbcShaderTranslator::UAVRegister::kZpdCounter);
+-        counter_range.RegisterSpace = 0;
+-        counter_range.OffsetInDescriptorsFromTableStart =
+-            UINT(SystemBindlessView::kZpdCounterRawUAV);
+-      }
+-      // Used UAV and SRV ranges must not overlap on Nvidia Fermi, so textures
+-      // have OffsetInDescriptorsFromTableStart after all static descriptors of
+-      // other types.
+-      // 2D array textures.
+-      {
+-        assert_true(parameter.DescriptorTable.NumDescriptorRanges <
+-                    rex::countof(root_bindless_view_ranges));
+-        auto& range = root_bindless_view_ranges[parameter.DescriptorTable.NumDescriptorRanges++];
+-        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+-        range.NumDescriptors = UINT_MAX;
+-        range.BaseShaderRegister = 0;
+-        range.RegisterSpace = UINT(DxbcShaderTranslator::SRVSpace::kBindlessTextures2DArray);
+-        range.OffsetInDescriptorsFromTableStart = UINT(SystemBindlessView::kUnboundedSRVsStart);
+-      }
+-      // 3D textures.
+-      {
+-        assert_true(parameter.DescriptorTable.NumDescriptorRanges <
+-                    rex::countof(root_bindless_view_ranges));
+-        auto& range = root_bindless_view_ranges[parameter.DescriptorTable.NumDescriptorRanges++];
+-        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+-        range.NumDescriptors = UINT_MAX;
+-        range.BaseShaderRegister = 0;
+-        range.RegisterSpace = UINT(DxbcShaderTranslator::SRVSpace::kBindlessTextures3D);
+-        range.OffsetInDescriptorsFromTableStart = UINT(SystemBindlessView::kUnboundedSRVsStart);
+-      }
+-      // Cube textures.
+-      {
+-        assert_true(parameter.DescriptorTable.NumDescriptorRanges <
+-                    rex::countof(root_bindless_view_ranges));
+-        auto& range = root_bindless_view_ranges[parameter.DescriptorTable.NumDescriptorRanges++];
+-        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+-        range.NumDescriptors = UINT_MAX;
+-        range.BaseShaderRegister = 0;
+-        range.RegisterSpace = UINT(DxbcShaderTranslator::SRVSpace::kBindlessTexturesCube);
+-        range.OffsetInDescriptorsFromTableStart = UINT(SystemBindlessView::kUnboundedSRVsStart);
+-      }
+-    }
+-    root_signature_bindless_vs_ =
+-        ui::d3d12::util::CreateRootSignature(provider, root_signature_bindless_desc);
+-    if (!root_signature_bindless_vs_) {
+-      REXGPU_ERROR(
+-          "Failed to create the global root signature for bindless resources, "
+-          "the version for use without tessellation");
+-      return false;
+-    }
+-    root_parameters_bindless[kRootParameter_Bindless_FloatConstantsVertex].ShaderVisibility =
+-        D3D12_SHADER_VISIBILITY_DOMAIN;
+-    root_parameters_bindless[kRootParameter_Bindless_DescriptorIndicesVertex].ShaderVisibility =
+-        D3D12_SHADER_VISIBILITY_DOMAIN;
+-    root_signature_bindless_ds_ =
+-        ui::d3d12::util::CreateRootSignature(provider, root_signature_bindless_desc);
+-    if (!root_signature_bindless_ds_) {
+-      REXGPU_ERROR(
+-          "Failed to create the global root signature for bindless resources, "
+-          "the version for use with tessellation");
+-      return false;
+-    }
+-  }
++  if (!CreateGuestRootSignatures()) return false;
+ 
+   primitive_processor_ =
+       std::make_unique<D3D12PrimitiveProcessor>(*register_file_, *memory_, *shared_memory_, *this);
+@@ -1524,42 +1320,7 @@ bool D3D12CommandProcessor::SetupContext() {
      // kSharedMemoryRawUAV.
      shared_memory_->WriteRawUAVDescriptor(provider.OffsetViewDescriptor(
          view_bindless_heap_cpu_start_, uint32_t(SystemBindlessView::kSharedMemoryRawUAV)));
@@ -8953,7 +9199,243 @@ index ca31b13..c0107db 100644
      // kZpdCounterRawUAV.
      WriteZPDCounterRawUAVDescriptor(provider.OffsetViewDescriptor(
          view_bindless_heap_cpu_start_, uint32_t(SystemBindlessView::kZpdCounterRawUAV)));
-@@ -1610,6 +1577,7 @@ void D3D12CommandProcessor::ShutdownContext() {
+@@ -1573,13 +1334,228 @@ bool D3D12CommandProcessor::SetupContext() {
+                                             uint32_t(SystemBindlessView::kGammaRampPWLSRV)));
+   }
+ 
+-  // Initialize the occlusion query pool and resources.
+-  host_query_pool_ = std::make_unique<D3D12QueryPool>();
+-  EnsureQueryResources();
+-
+-  // Just not to expose uninitialized memory.
+-  std::memset(&system_constants_, 0, sizeof(system_constants_));
+-
++  // Initialize the occlusion query pool and resources.
++  host_query_pool_ = std::make_unique<D3D12QueryPool>();
++  EnsureQueryResources();
++
++  // Just not to expose uninitialized memory.
++  std::memset(&system_constants_, 0, sizeof(system_constants_));
++
++  return true;
++}
++
++bool D3D12CommandProcessor::CreateGuestRootSignatures() {
++  const auto& provider = GetD3D12Provider();
++  if (bindless_resources_used_) {
++    // Global bindless resource root signatures.
++    // No CBV or UAV descriptor ranges with any descriptors to be allocated
++    // dynamically (via RequestPersistentViewBindlessDescriptor or
++    // RequestOneUseSingleViewDescriptors) should be here, because they would
++    // overlap the unbounded SRV range, which is not allowed on Nvidia Fermi!
++    D3D12_ROOT_SIGNATURE_DESC root_signature_bindless_desc;
++    D3D12_ROOT_PARAMETER
++    root_parameters_bindless[kRootParameter_Bindless_Count];
++    root_signature_bindless_desc.NumParameters = kRootParameter_Bindless_Count;
++    root_signature_bindless_desc.pParameters = root_parameters_bindless;
++    root_signature_bindless_desc.NumStaticSamplers = 0;
++    root_signature_bindless_desc.pStaticSamplers = nullptr;
++    root_signature_bindless_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
++    // Fetch constants.
++    {
++      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_FetchConstants];
++      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
++      parameter.Descriptor.ShaderRegister =
++          uint32_t(DxbcShaderTranslator::CbufferRegister::kFetchConstants);
++      parameter.Descriptor.RegisterSpace = 0;
++      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
++    }
++    // Vertex float constants.
++    {
++      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_FloatConstantsVertex];
++      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
++      parameter.Descriptor.ShaderRegister =
++          uint32_t(DxbcShaderTranslator::CbufferRegister::kFloatConstants);
++      parameter.Descriptor.RegisterSpace = 0;
++      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
++    }
++    // Pixel float constants.
++    {
++      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_FloatConstantsPixel];
++      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
++      parameter.Descriptor.ShaderRegister =
++          uint32_t(DxbcShaderTranslator::CbufferRegister::kFloatConstants);
++      parameter.Descriptor.RegisterSpace = 0;
++      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
++    }
++    // Pixel shader descriptor indices.
++    {
++      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_DescriptorIndicesPixel];
++      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
++      parameter.Descriptor.ShaderRegister =
++          uint32_t(DxbcShaderTranslator::CbufferRegister::kDescriptorIndices);
++      parameter.Descriptor.RegisterSpace = 0;
++      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
++    }
++    // Vertex shader descriptor indices.
++    {
++      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_DescriptorIndicesVertex];
++      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
++      parameter.Descriptor.ShaderRegister =
++          uint32_t(DxbcShaderTranslator::CbufferRegister::kDescriptorIndices);
++      parameter.Descriptor.RegisterSpace = 0;
++      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
++    }
++    // System constants.
++    {
++      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_SystemConstants];
++      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
++      parameter.Descriptor.ShaderRegister =
++          uint32_t(DxbcShaderTranslator::CbufferRegister::kSystemConstants);
++      parameter.Descriptor.RegisterSpace = 0;
++      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
++    }
++    // Bool and loop constants.
++    {
++      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_BoolLoopConstants];
++      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
++      parameter.Descriptor.ShaderRegister =
++          uint32_t(DxbcShaderTranslator::CbufferRegister::kBoolLoopConstants);
++      parameter.Descriptor.RegisterSpace = 0;
++      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
++    }
++    // Shared memory SRV and UAV.
++    D3D12_DESCRIPTOR_RANGE root_shared_memory_view_ranges[2];
++    {
++      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_SharedMemory];
++      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
++      parameter.DescriptorTable.NumDescriptorRanges =
++          uint32_t(rex::countof(root_shared_memory_view_ranges));
++      parameter.DescriptorTable.pDescriptorRanges = root_shared_memory_view_ranges;
++      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
++      {
++        auto& range = root_shared_memory_view_ranges[0];
++        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
++        range.NumDescriptors = 1;
++        range.BaseShaderRegister = UINT(DxbcShaderTranslator::SRVMainRegister::kSharedMemory);
++        range.RegisterSpace = UINT(DxbcShaderTranslator::SRVSpace::kMain);
++        range.OffsetInDescriptorsFromTableStart = 0;
++      }
++      {
++        auto& range = root_shared_memory_view_ranges[1];
++        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
++        range.NumDescriptors = 1;
++        range.BaseShaderRegister = UINT(DxbcShaderTranslator::UAVRegister::kSharedMemory);
++        range.RegisterSpace = 0;
++        range.OffsetInDescriptorsFromTableStart = 1;
++      }
++    }
++    // Sampler heap.
++    D3D12_DESCRIPTOR_RANGE root_bindless_sampler_range;
++    {
++      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_SamplerHeap];
++      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
++      // Will be appending.
++      parameter.DescriptorTable.NumDescriptorRanges = 1;
++      parameter.DescriptorTable.pDescriptorRanges = &root_bindless_sampler_range;
++      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
++      root_bindless_sampler_range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
++      root_bindless_sampler_range.NumDescriptors = UINT_MAX;
++      root_bindless_sampler_range.BaseShaderRegister = 0;
++      root_bindless_sampler_range.RegisterSpace = 0;
++      root_bindless_sampler_range.OffsetInDescriptorsFromTableStart = 0;
++    }
++    // View heap.
++    D3D12_DESCRIPTOR_RANGE root_bindless_view_ranges[5];
++    {
++      auto& parameter = root_parameters_bindless[kRootParameter_Bindless_ViewHeap];
++      parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
++      // Will be appending.
++      parameter.DescriptorTable.NumDescriptorRanges = 0;
++      parameter.DescriptorTable.pDescriptorRanges = root_bindless_view_ranges;
++      parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
++      // EDRAM.
++      if (render_target_cache_->GetPath() == RenderTargetCache::Path::kPixelShaderInterlock) {
++        assert_true(parameter.DescriptorTable.NumDescriptorRanges <
++                    rex::countof(root_bindless_view_ranges));
++        auto& range = root_bindless_view_ranges[parameter.DescriptorTable.NumDescriptorRanges++];
++        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
++        range.NumDescriptors = 1;
++        range.BaseShaderRegister = UINT(DxbcShaderTranslator::UAVRegister::kEdram);
++        range.RegisterSpace = 0;
++        range.OffsetInDescriptorsFromTableStart = UINT(SystemBindlessView::kEdramR32UintUAV);
++      }
++      // ZPD counter, used by ROV and RTV hybrid queries.
++      {
++        assert_true(parameter.DescriptorTable.NumDescriptorRanges <
++                    rex::countof(root_bindless_view_ranges));
++        auto& counter_range =
++            root_bindless_view_ranges[parameter.DescriptorTable.NumDescriptorRanges++];
++        counter_range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
++        counter_range.NumDescriptors = 1;
++        counter_range.BaseShaderRegister = UINT(DxbcShaderTranslator::UAVRegister::kZpdCounter);
++        counter_range.RegisterSpace = 0;
++        counter_range.OffsetInDescriptorsFromTableStart =
++            UINT(SystemBindlessView::kZpdCounterRawUAV);
++      }
++      // Used UAV and SRV ranges must not overlap on Nvidia Fermi, so textures
++      // have OffsetInDescriptorsFromTableStart after all static descriptors of
++      // other types.
++      // 2D array textures.
++      {
++        assert_true(parameter.DescriptorTable.NumDescriptorRanges <
++                    rex::countof(root_bindless_view_ranges));
++        auto& range = root_bindless_view_ranges[parameter.DescriptorTable.NumDescriptorRanges++];
++        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
++        range.NumDescriptors = UINT_MAX;
++        range.BaseShaderRegister = 0;
++        range.RegisterSpace = UINT(DxbcShaderTranslator::SRVSpace::kBindlessTextures2DArray);
++        range.OffsetInDescriptorsFromTableStart = UINT(SystemBindlessView::kUnboundedSRVsStart);
++      }
++      // 3D textures.
++      {
++        assert_true(parameter.DescriptorTable.NumDescriptorRanges <
++                    rex::countof(root_bindless_view_ranges));
++        auto& range = root_bindless_view_ranges[parameter.DescriptorTable.NumDescriptorRanges++];
++        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
++        range.NumDescriptors = UINT_MAX;
++        range.BaseShaderRegister = 0;
++        range.RegisterSpace = UINT(DxbcShaderTranslator::SRVSpace::kBindlessTextures3D);
++        range.OffsetInDescriptorsFromTableStart = UINT(SystemBindlessView::kUnboundedSRVsStart);
++      }
++      // Cube textures.
++      {
++        assert_true(parameter.DescriptorTable.NumDescriptorRanges <
++                    rex::countof(root_bindless_view_ranges));
++        auto& range = root_bindless_view_ranges[parameter.DescriptorTable.NumDescriptorRanges++];
++        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
++        range.NumDescriptors = UINT_MAX;
++        range.BaseShaderRegister = 0;
++        range.RegisterSpace = UINT(DxbcShaderTranslator::SRVSpace::kBindlessTexturesCube);
++        range.OffsetInDescriptorsFromTableStart = UINT(SystemBindlessView::kUnboundedSRVsStart);
++      }
++    }
++    root_signature_bindless_vs_ =
++        ui::d3d12::util::CreateRootSignature(provider, root_signature_bindless_desc);
++    if (!root_signature_bindless_vs_) {
++      REXGPU_ERROR(
++          "Failed to create the global root signature for bindless resources, "
++          "the version for use without tessellation");
++      return false;
++    }
++    root_parameters_bindless[kRootParameter_Bindless_FloatConstantsVertex].ShaderVisibility =
++        D3D12_SHADER_VISIBILITY_DOMAIN;
++    root_parameters_bindless[kRootParameter_Bindless_DescriptorIndicesVertex].ShaderVisibility =
++        D3D12_SHADER_VISIBILITY_DOMAIN;
++    root_signature_bindless_ds_ =
++        ui::d3d12::util::CreateRootSignature(provider, root_signature_bindless_desc);
++    if (!root_signature_bindless_ds_) {
++      REXGPU_ERROR(
++          "Failed to create the global root signature for bindless resources, "
++          "the version for use with tessellation");
++      return false;
++    }
++  }
++
+   return true;
+ }
+ 
+@@ -1610,6 +1586,7 @@ void D3D12CommandProcessor::ShutdownContext() {
      }
    }
    readback_buffers_.clear();
@@ -8961,7 +9443,7 @@ index ca31b13..c0107db 100644
    for (auto& memexport_readback_pair : memexport_readback_buffers_) {
      auto& readback = memexport_readback_pair.second;
      for (uint32_t i = 0; i < 2; ++i) {
-@@ -2670,6 +2638,13 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type, uint3
+@@ -2670,6 +2647,13 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type, uint3
          return false;
        }
      }
@@ -8975,7 +9457,7 @@ index ca31b13..c0107db 100644
      if (pipeline_cache_->GetD3D12PipelineByHandle(pipeline_handle) == nullptr) {
        // Pipeline not ready (still being created asynchronously) - skip the
        // draw.
-@@ -2817,7 +2792,8 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type, uint3
+@@ -2817,7 +2801,8 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type, uint3
                          vfetch_index, vfetch_constant.dword_0, vfetch_constant.dword_1);
              return false;
          }
@@ -8985,7 +9467,7 @@ index ca31b13..c0107db 100644
          vfetch_sizes[vfetch_current_queued++] = vfetch_constant.size;
        }
      }
-@@ -3237,137 +3213,91 @@ bool D3D12CommandProcessor::IssueCopy() {
+@@ -3237,137 +3222,91 @@ bool D3D12CommandProcessor::IssueCopy() {
    return IssueCopy_ReadbackResolvePath();
  }
  
@@ -9143,7 +9625,7 @@ index ca31b13..c0107db 100644
 -  uint64_t resolve_key = GetReadbackResolveKey(written_address, written_length);
 -  ReadbackBuffer& rb = readback_buffers_[resolve_key];
 -  rb.last_used_frame = frame_current_;
- 
+-
 -  uint32_t write_index = rb.current_index;
 -  uint32_t size = AlignReadbackBufferSize(readback_length);
 -
@@ -9179,7 +9661,7 @@ index ca31b13..c0107db 100644
 -  if (!rb.buffers[write_index]) {
 -    return true;
 -  }
--
+ 
 -  if (is_scaled) {
 -    // Scaled path: downscale on the GPU, then copy the 1x data to the
 -    // readback buffer.
@@ -9187,7 +9669,7 @@ index ca31b13..c0107db 100644
      if (size > resolve_downscale_buffer_size_) {
        const ui::d3d12::D3D12Provider& provider = GetD3D12Provider();
        ID3D12Device* device = provider.GetDevice();
-@@ -3389,29 +3319,27 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+@@ -3389,29 +3328,27 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
          resolve_downscale_buffer_size_ = size;
        } else {
          REXGPU_ERROR("Failed to create a {} MB resolve downscale buffer", size >> 20);
@@ -9222,7 +9704,7 @@ index ca31b13..c0107db 100644
      ui::d3d12::util::CreateBufferRawUAV(device, downscale_descriptors[1].first,
                                          resolve_downscale_buffer_.Get(), aligned_readback_length,
                                          0);
-@@ -3427,7 +3355,7 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+@@ -3427,7 +3364,7 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
      ResolveDownscaleConstants downscale_constants;
      downscale_constants.scale_x = texture_cache_->draw_resolution_scale_x();
      downscale_constants.scale_y = texture_cache_->draw_resolution_scale_y();
@@ -9231,7 +9713,7 @@ index ca31b13..c0107db 100644
      downscale_constants.tile_count = downscale_tile_count;
      // The source SRV is created at the offset of the written extent, so the
      // shader reads from the start of the bound range.
-@@ -3448,8 +3376,8 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+@@ -3448,8 +3385,8 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
      PushTransitionBarrier(resolve_downscale_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
                            D3D12_RESOURCE_STATE_COPY_SOURCE);
      SubmitBarriers();
@@ -9242,7 +9724,7 @@ index ca31b13..c0107db 100644
      // Return the buffers to their steady states.
      PushTransitionBarrier(resolve_downscale_buffer_.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE,
                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-@@ -3457,17 +3385,103 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+@@ -3457,17 +3394,103 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
      SubmitBarriers();
    } else {
      // Non-scaled path: copy resolved data from the shared memory to the
@@ -9349,7 +9831,7 @@ index ca31b13..c0107db 100644
    uint32_t read_index = write_index;
    if (use_delayed_sync) {
      read_index = 1 - write_index;
-@@ -3477,9 +3491,9 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+@@ -3477,9 +3500,9 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
  
    bool is_cache_miss = false;
    if (use_delayed_sync && (!rb.buffers[read_index] || readback_length > rb.sizes[read_index] ||
@@ -9362,7 +9844,7 @@ index ca31b13..c0107db 100644
      is_cache_miss = true;
      read_index = write_index;
      if (!AwaitAllQueueOperationsCompletion()) {
-@@ -3490,9 +3504,13 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+@@ -3490,9 +3513,13 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
    bool should_copy = (readback_mode == ReadbackResolveMode::kSome) ? is_cache_miss : true;
    if (should_copy && rb.buffers[read_index] && readback_length <= rb.sizes[read_index] &&
        rb.mapped_data[read_index]) {
@@ -9379,7 +9861,7 @@ index ca31b13..c0107db 100644
      }
    }
  
-@@ -3500,6 +3518,81 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+@@ -3500,6 +3527,81 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
    return true;
  }
  
@@ -9461,7 +9943,7 @@ index ca31b13..c0107db 100644
  void D3D12CommandProcessor::CheckSubmissionCompletion(uint64_t await_submission) {
    if (await_submission >= GetCurrentSubmission()) {
      if (submission_open_) {
-@@ -3888,13 +3981,181 @@ bool D3D12CommandProcessor::EndSubmission(bool is_swap) {
+@@ -3888,13 +3990,212 @@ bool D3D12CommandProcessor::EndSubmission(bool is_swap) {
  
        shared_memory_->ClearCache();
      }
@@ -9548,11 +10030,20 @@ index ca31b13..c0107db 100644
 +      RequestDrawResolutionScale(requested_scale_x, requested_scale_y, force_rebuild);
 +    }
 +    return;
-   }
- 
-+  // The root signatures and the bindless descriptor layout depend on the render
-+  // target path, so it must stay the same.
-+  RenderTargetCache::Path render_target_path = render_target_cache_->GetPath();
++  }
++
++  const auto old_path = render_target_cache_->GetPath();
++  auto render_target_path = RenderTargetCache::Path::kHostRenderTargets;
++  const auto configured_path = REXCVAR_GET(render_target_path_d3d12);
++  if (configured_path == "rov" ||
++      (configured_path != "rtv" && configured_path != "rov" &&
++       provider.GetAdapterVendorID() == ui::GraphicsProvider::GpuVendorID::kIntel &&
++       !provider.IsIntelArcGpu()))
++    render_target_path = RenderTargetCache::Path::kPixelShaderInterlock;
++  if (!provider.AreRasterizerOrderedViewsSupported())
++    render_target_path = RenderTargetCache::Path::kHostRenderTargets;
++  const bool path_changed = old_path != render_target_path;
++  if (path_changed) pipeline_cache_->ShutdownShaderStorage();
 +
 +  // Destroy everything that has the old scale baked in before creating anything
 +  // for the new one, not to need memory for both at once.
@@ -9576,14 +10067,36 @@ index ca31b13..c0107db 100644
 +    // This has also succeeded at startup, though.
 +    rex::FatalError("Failed to recreate the GPU emulation state for a draw resolution scale");
 +  }
++  if (path_changed) {
++    // GPU work and translation threads are drained. No pipeline can still
++    // refer to a root signature from the previous render-target path.
++    ui::d3d12::util::ReleaseAndNull(root_signature_bindless_ds_);
++    ui::d3d12::util::ReleaseAndNull(root_signature_bindless_vs_);
++    for (auto& entry : root_signatures_bindful_) entry.second->Release();
++    root_signatures_bindful_.clear();
++    zpd_hybrid_supported_ = REXCVAR_GET(occlusion_query_full_counters) && command_list_2_ &&
++        render_target_path == RenderTargetCache::Path::kHostRenderTargets;
++    pipeline_cache_->SetHybridSupported(zpd_hybrid_supported_);
++    xenos_sample_positions_used_ = command_list_1_ &&
++        provider.GetProgrammableSamplePositionsTier() != D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED &&
++        (render_target_path == RenderTargetCache::Path::kPixelShaderInterlock || REXCVAR_GET(xenos_sample_positions));
++    if (!CreateGuestRootSignatures())
++      rex::FatalError("Failed to recreate graphics bindings for the render-target mode");
++  }
 +  pipeline_cache_->CreateDrawResolutionScaleDependentObjects();
++
++  if (path_changed && live_cache_title_) {
++    pipeline_cache_->InitializeShaderStorage(live_cache_root_, live_cache_title_, false);
++    REXGPU_INFO("GPU: render target mode changed live to {}",
++        render_target_path == RenderTargetCache::Path::kHostRenderTargets ? "RTV" : "ROV");
++  }
 +
 +  // The bindless descriptors of the EDRAM buffer, which has been recreated.
 +  // With bindful descriptors, they're written when needed.
 +  if (bindless_resources_used_) {
 +    WriteEdramBindlessDescriptors();
-+  }
-+
+   }
+ 
 +  // Occlusion query sample counts are normalized by the scale.
 +  zpd_draw_resolution_scale_x_ = new_scale_x;
 +  zpd_draw_resolution_scale_y_ = new_scale_y;
@@ -9644,7 +10157,7 @@ index ca31b13..c0107db 100644
  }
  
  void D3D12CommandProcessor::ClearCommandAllocatorCache() {
-@@ -4636,18 +4897,8 @@ bool D3D12CommandProcessor::UpdateBindings(const D3D12Shader* vertex_shader,
+@@ -4636,18 +4937,8 @@ bool D3D12CommandProcessor::UpdateBindings(const D3D12Shader* vertex_shader,
      if (float_constants == nullptr) {
        return false;
      }
@@ -9665,7 +10178,7 @@ index ca31b13..c0107db 100644
      cbuffer_binding_float_vertex_.up_to_date = true;
      current_graphics_root_up_to_date_ &= ~(1u << root_parameter_float_constants_vertex);
    }
-@@ -4662,18 +4913,8 @@ bool D3D12CommandProcessor::UpdateBindings(const D3D12Shader* vertex_shader,
+@@ -4662,18 +4953,8 @@ bool D3D12CommandProcessor::UpdateBindings(const D3D12Shader* vertex_shader,
      if (pixel_shader != nullptr) {
        const Shader::ConstantRegisterMap& float_constant_map_pixel =
            pixel_shader->constant_register_map();
@@ -9686,7 +10199,7 @@ index ca31b13..c0107db 100644
      }
      cbuffer_binding_float_pixel_.up_to_date = true;
      current_graphics_root_up_to_date_ &= ~(1u << root_parameter_float_constants_pixel);
-@@ -5561,15 +5802,11 @@ bool D3D12CommandProcessor::AwaitQueryResolve(ReportHandle report_handle,
+@@ -5561,15 +5842,11 @@ bool D3D12CommandProcessor::AwaitQueryResolve(ReportHandle report_handle,
                                                uint64_t wait_for_submission) {
    assert_not_zero(wait_for_submission);
  
@@ -15117,7 +15630,7 @@ index 52e0073..bfdc3f4 100644
  
  void SharedAssignment::DevicesForUser(uint32_t user_index, std::vector<DeviceId>& out) const {
 diff --git a/src/input/mnk/mnk_input_driver.cpp b/src/input/mnk/mnk_input_driver.cpp
-index 3d2c378..104ae7c 100644
+index 3d2c378..2876a6d 100644
 --- a/src/input/mnk/mnk_input_driver.cpp
 +++ b/src/input/mnk/mnk_input_driver.cpp
 @@ -13,11 +13,13 @@
@@ -15134,10 +15647,15 @@ index 3d2c378..104ae7c 100644
  #include <cmath>
  #include <cstdlib>
  #include <cstring>
-@@ -29,6 +31,19 @@ REXCVAR_DEFINE_BOOL(mnk_mouse, false, "Input",
+@@ -29,33 +31,46 @@ REXCVAR_DEFINE_BOOL(mnk_mouse, false, "Input",
                      "from the keybind_rstick_* keys only");
  REXCVAR_DEFINE_DOUBLE(mnk_sensitivity, 1.0, "Input", "Mouse sensitivity for right stick")
      .range(0.01, 10.0);
+-
+-REXCVAR_DEFINE_STRING(keybind_a, "Semicolon,Space", "Input/Keybinds/Controller", "A button");
+-REXCVAR_DEFINE_STRING(keybind_b, "Quote,Backspace", "Input/Keybinds/Controller", "B button");
+-REXCVAR_DEFINE_STRING(keybind_x, "L", "Input/Keybinds/Controller", "X button");
+-REXCVAR_DEFINE_STRING(keybind_y, "P", "Input/Keybinds/Controller", "Y button");
 +REXCVAR_DEFINE_BOOL(mnk_mouse_to_stick, true, "Input",
 +                    "Turn mouse movement into the right stick. Off when the title reads the mouse "
 +                    "itself (native mouse aim); mnk_mouse still captures the cursor");
@@ -15151,9 +15669,45 @@ index 3d2c378..104ae7c 100644
 +                      "(60%) to full, and half that to let it go, so steering with keys is not "
 +                      "all or nothing. 0: the keys push it to full at once")
 +    .range(0.0, 2.0);
++
++REXCVAR_DEFINE_STRING(keybind_a, "E", "Input/Keybinds/Controller", "A button");
++REXCVAR_DEFINE_STRING(keybind_b, "WheelUp", "Input/Keybinds/Controller", "B button");
++REXCVAR_DEFINE_STRING(keybind_x, "R", "Input/Keybinds/Controller", "X button");
++REXCVAR_DEFINE_STRING(keybind_y, "WheelDown", "Input/Keybinds/Controller", "Y button");
+ REXCVAR_DEFINE_STRING(keybind_left_trigger, "Q,I", "Input/Keybinds/Controller", "Left trigger");
+-REXCVAR_DEFINE_STRING(keybind_right_trigger, "E,O", "Input/Keybinds/Controller", "Right trigger");
+-REXCVAR_DEFINE_STRING(keybind_left_shoulder, "1", "Input/Keybinds/Controller", "Left shoulder");
+-REXCVAR_DEFINE_STRING(keybind_right_shoulder, "3", "Input/Keybinds/Controller", "Right shoulder");
++REXCVAR_DEFINE_STRING(keybind_right_trigger, "LMB", "Input/Keybinds/Controller", "Right trigger");
++REXCVAR_DEFINE_STRING(keybind_left_shoulder, "MMB", "Input/Keybinds/Controller", "Left shoulder");
++REXCVAR_DEFINE_STRING(keybind_right_shoulder, "Space", "Input/Keybinds/Controller", "Right shoulder");
+ REXCVAR_DEFINE_STRING(keybind_lstick_up, "W", "Input/Keybinds/Controller", "Left stick up");
+ REXCVAR_DEFINE_STRING(keybind_lstick_down, "S", "Input/Keybinds/Controller", "Left stick down");
+ REXCVAR_DEFINE_STRING(keybind_lstick_left, "A", "Input/Keybinds/Controller", "Left stick left");
+ REXCVAR_DEFINE_STRING(keybind_lstick_right, "D", "Input/Keybinds/Controller", "Left stick right");
+-REXCVAR_DEFINE_STRING(keybind_lstick_press, "F", "Input/Keybinds/Controller", "Left stick press");
++REXCVAR_DEFINE_STRING(keybind_lstick_press, "Control", "Input/Keybinds/Controller", "Left stick press");
+ REXCVAR_DEFINE_STRING(keybind_rstick_up, "Up", "Input/Keybinds/Controller", "Right stick up");
+ REXCVAR_DEFINE_STRING(keybind_rstick_down, "Down", "Input/Keybinds/Controller", "Right stick down");
+ REXCVAR_DEFINE_STRING(keybind_rstick_left, "Left", "Input/Keybinds/Controller", "Right stick left");
+ REXCVAR_DEFINE_STRING(keybind_rstick_right, "Right", "Input/Keybinds/Controller",
+                       "Right stick right");
+ REXCVAR_DEFINE_STRING(keybind_rstick_press, "K", "Input/Keybinds/Controller", "Right stick press");
+-REXCVAR_DEFINE_STRING(keybind_dpad_up, "Shift+Up", "Input/Keybinds/Controller", "D-pad up");
+-REXCVAR_DEFINE_STRING(keybind_dpad_down, "Shift+Down", "Input/Keybinds/Controller", "D-pad down");
+-REXCVAR_DEFINE_STRING(keybind_dpad_left, "Shift+Left", "Input/Keybinds/Controller", "D-pad left");
+-REXCVAR_DEFINE_STRING(keybind_dpad_right, "Shift+Right", "Input/Keybinds/Controller",
++REXCVAR_DEFINE_STRING(keybind_dpad_up, "Up", "Input/Keybinds/Controller", "D-pad up");
++REXCVAR_DEFINE_STRING(keybind_dpad_down, "Down", "Input/Keybinds/Controller", "D-pad down");
++REXCVAR_DEFINE_STRING(keybind_dpad_left, "Left", "Input/Keybinds/Controller", "D-pad left");
++REXCVAR_DEFINE_STRING(keybind_dpad_right, "Right", "Input/Keybinds/Controller",
+                       "D-pad right");
+ REXCVAR_DEFINE_STRING(keybind_back, "Z,Tab", "Input/Keybinds/Controller", "Back button");
+-REXCVAR_DEFINE_STRING(keybind_start, "X,Return", "Input/Keybinds/Controller", "Start button");
++REXCVAR_DEFINE_STRING(keybind_start, "Escape", "Input/Keybinds/Controller", "Start button");
+ REXCVAR_DEFINE_STRING(keybind_guide, "", "Input/Keybinds/Controller", "Guide button");
  
- REXCVAR_DEFINE_STRING(keybind_a, "Semicolon,Space", "Input/Keybinds/Controller", "A button");
- REXCVAR_DEFINE_STRING(keybind_b, "Quote,Backspace", "Input/Keybinds/Controller", "B button");
+ REXCVAR_DEFINE_BOOL(mnk_passthrough, false, "Input",
 @@ -75,14 +90,10 @@ constexpr rex::input::DeviceId kMnkDevice = static_cast<rex::input::DeviceId>(0x
  constexpr size_t kMaxQueuedKeystrokes = 256;
  

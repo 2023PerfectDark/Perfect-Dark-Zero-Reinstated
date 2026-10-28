@@ -479,7 +479,7 @@ namespace third_person
 {
   void RegisterBinds()
   {
-    rex::ui::RegisterBind("bind_third_person", "Y", "Toggle third-person camera", []
+    rex::ui::RegisterBind("bind_third_person", "V", "Toggle third-person camera", []
                           {
       // Held keys auto-repeat; only a press after a quiet gap counts.
       static auto last_event = std::chrono::steady_clock::time_point{};

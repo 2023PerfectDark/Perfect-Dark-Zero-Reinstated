@@ -10,7 +10,12 @@
 #include <fstream>
 #include <iomanip>
 #include <algorithm>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
 namespace pdz_bindings {
+inline std::string save_status;
 static rex::ui::VirtualKey ImGuiKeyToVirtualKey(ImGuiKey key) {
   using VK = rex::ui::VirtualKey;
   if (key >= ImGuiKey_A && key <= ImGuiKey_Z) {
@@ -119,11 +124,24 @@ inline std::vector<std::string> Names(){
  return names;
 }
 inline void Persist(bool& saved){
- std::ofstream file(utils::SettingsDir()/"keybindings.toml",std::ios::trunc);
- for(const auto& name:Names())file<<name<<" = "<<std::quoted(rex::cvar::GetFlagByName(name))<<"\n";file.close();
- saved=bool(file);
+ saved=false;
+ const auto target=utils::SettingsDir()/"keybindings.toml";
+ const auto temporary=utils::SettingsDir()/"keybindings.toml.tmp";
+ try {
+  std::filesystem::create_directories(utils::SettingsDir());
+  std::ofstream file(temporary,std::ios::trunc);
+  file.exceptions(std::ios::failbit|std::ios::badbit);
+  for(const auto& name:Names())file<<name<<" = "<<std::quoted(rex::cvar::GetFlagByName(name))<<"\n";
+  file.close();
+  if(!MoveFileExW(temporary.c_str(),target.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH))
+   throw std::system_error(GetLastError(),std::system_category());
+  saved=true;
+  save_status="Bindings saved. Changes are active now.";
+ } catch(const std::exception& error) {
+  save_status="Bindings changed for this session, but could not be saved to "+target.string()+". "+error.what()+". Check folder write permissions, then retry saving.";
+ }
 }
-inline void Draw(bool& saved){
+inline void Draw(bool& saved,bool openEditor=false){
  static float editorScale=2.1f;
  static bool scalingGesture=false;
  const bool ctrl=ImGui::GetIO().KeyCtrl || ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
@@ -132,7 +150,7 @@ inline void Draw(bool& saved){
   editorScale=std::clamp(editorScale+ImGui::GetIO().MouseWheel*.15f,1.2f,3.5f);
   ImGui::GetIO().MouseWheel=0;
  }
- if(ImGui::Button("Open mouse and keyboard editor"))ImGui::OpenPopup("Mouse and keyboard controls");
+ if(openEditor)ImGui::OpenPopup("Mouse and keyboard controls");
  const auto size=ImGui::GetMainViewport()->Size;
  ImGui::SetNextWindowSize({size.x*.78f,size.y*.78f},ImGuiCond_Appearing);
  if(!ImGui::BeginPopupModal("Mouse and keyboard controls",nullptr,ImGuiWindowFlags_NoSavedSettings))return;
@@ -143,6 +161,8 @@ inline void Draw(bool& saved){
  static std::string selected,candidate,conflicts;static int opened=0;
  ImGui::Separator();ImGui::TextUnformatted("Mouse and keyboard bindings");
  ImGui::TextWrapped("Select an action, then press a key or mouse button. Delete clears it. Escape offers Bind or Cancel. Hold Ctrl and scroll to resize text. Scroll up/down to bind button actions. While aiming, wheel only zooms.");
+ if(!save_status.empty())ImGui::TextWrapped("%s",save_status.c_str());
+ if(ImGui::Button("Save bindings now"))Persist(saved);
  for(const auto& name:Names()){
   const auto* info=rex::cvar::GetFlagInfo(name);if(!info)continue;
   ImGui::PushID(name.c_str());

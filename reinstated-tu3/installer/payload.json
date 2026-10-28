@@ -1,5 +1,5 @@
 {
-  "version": "Perfect Dark Zero: Reinstated v126 Release - 2026-10-28 (TU3 base 1.8; game v124)",
+  "version": "Perfect Dark Zero: Reinstated v135 - 2026-10-28 (TU3 base 1.8)",
   "files": [
     {
       "source": "payload/retail/perfectdarkzerorecomp.exe",
@@ -26,22 +26,22 @@
       "source": "payload/tu3/PDZReinstatedTU3.exe",
       "destination": "PDZReinstatedTU3.exe",
       "group": "tu3",
-      "size": 81502720,
-      "sha256": "9c945738806780e50376ae5db85816b607436f7d79b735e7ffa72a528e705ea1"
+      "size": 81519104,
+      "sha256": "b6d0a3395aa88b6a73fa40cc2a88c7bb218c7ec7c4b79d1e7bc6677e9e7490c5"
     },
     {
       "source": "payload/tu3/rexruntime.dll",
       "destination": "rexruntime.dll",
       "group": "tu3",
       "size": 11469312,
-      "sha256": "4a3b9bf7eb73a86551b34e8227fba3968ecc2342bbb27346d67aa8ea170529af"
+      "sha256": "4828623bcf0e5f5ffc5363b0f2dc885f17b5b1e509668696213bfbd4b06701be"
     },
     {
       "source": "payload/tu3/rexgpu-xenos.dll",
       "destination": "rexgpu-xenos.dll",
       "group": "tu3",
-      "size": 8204288,
-      "sha256": "36a8875727c7f250bd06b729d6e9bcf41117ab8af787998e8a521846595321ef"
+      "size": 8210944,
+      "sha256": "c7728cc417c8f4d7c899992b15fb8bb3716fa0f61e9810dc5b04a5dac6a21ec2"
     },
     {
       "source": "payload/common/assets/pdz/aid_darkcharacter_guns_klobb_fp_klobb/default.dbm",
@@ -3323,8 +3323,8 @@
       "source": "payload/common/mod_assets/updater/changelog.txt",
       "destination": "mod_assets/updater/changelog.txt",
       "group": "common",
-      "size": 1673,
-      "sha256": "52ea33e3366776c133b31e7ef91d814b4adcc919b32e50da08e1f0950aa14de8"
+      "size": 1605,
+      "sha256": "fc71d8ac166783ea8a5ef49ac6d6042fc2127b99b2aec01b7ee581aa7abcc284"
     },
     {
       "source": "payload/common/mod_assets/updater/update.ps1",
@@ -7902,7 +7902,7 @@
       "destination": "mod_assets/updater/source.json",
       "group": "common",
       "size": 296,
-      "sha256": "2f7efe1481a02869a56be141cef42d2aebcf27c19ad1388dc03e1fe5de15ab06"
+      "sha256": "96804ad66efec513c4cf4e64eae65674793a1d3d75ccb3a59fb2f96dcbed880a"
     }
   ]
 }

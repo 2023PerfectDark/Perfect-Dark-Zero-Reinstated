@@ -1,3 +1,20 @@
+Perfect Dark Zero: Reinstated 1.8 - v135
+October 28, 2026
+
+PD menu: sliding tabs, smooth size/width sliders, and responsive right-hand hover help. Removed empty preview space. Output resolution offers 240p through 4K and applies without a restart. VSync, render target mode, native 2x anti-aliasing and resolution scale support live changes. The menu/live-setting changes were user-confirmed working; immediate refresh of already loaded localized text remains unverified.
+
+New installs default to VSync off, aspect-ratio preservation off, menu/scripted-camera cap off and Play while shaders compile on. Existing settings are preserved.
+
+Mouse/keyboard defaults now match the creator's saved layout, including Reset to defaults. Binding editor reports successful saves or the exact file error, offers Save bindings now, and protects the previous file if writing fails. Reports of other users' bindings not applying/saving are not yet reproduced; this is not a confirmed fix for every report.
+
+Backpack reload: unlocked toggle in Cheats / Gameplay assists, off by default. Stowed weapons reload from reserves. Ammo policy tests passed; weapon switching still needs an in-game check.
+
+US Rev 1 support remains included: separate DLC setup is skipped and external TU3 is blocked. Original US ISO support, Surface, optional completed-playthrough shader cache, mouse dialog controls and single-row lobby highlights remain included.
+
+Known limits: random bot head/body remains unresolved. Rev 1 and runtime changes have not been exhaustively tested. No guarantee of zero crashes or shader stutter.
+
+Previous release documentation:
+
 PERFECT DARK ZERO: REINSTATED - RELEASE VALIDATION
 Release v124 - 27 October 2026
 TU3 base 1.8; game build v124
