@@ -15,9 +15,9 @@
 
 #include "debug_tools.h"
 #include "game_cvars.h"
-#include "fov_settings.h"
 #include "game_patches.h"
 #include "local_profiles.h"
+#include "mod/fov_settings.h"
 #include "mod/third_person.h"
 #include "mouse/mouse_look.h"
 #include "utils.h"
@@ -64,12 +64,14 @@ public:
     // can be rebound from mapping.toml.
     third_person::RegisterBinds();
     local_profiles::Init(drawer);
-    rex::ui::RegisterBind("bind_fov_settings", "F6", "Toggle field of view slider", [this, drawer]
-    {
-      if (fov_settings_) fov_settings_.reset();
-      else fov_settings_ = std::make_unique<FovSettings>(drawer);
-    });
-    pdz::mouse::MouseLook::Get().Attach(window(), drawer);
+    fov_settings::Init(drawer);
+    pdz::mouse::MouseLook::Get().Attach(window(), drawer, [this]
+                                        { return HasInteractiveOverlay(); });
+  }
+
+  bool HasAppOverlay() const override
+  {
+    return fov_settings::IsOpen() || local_profiles::IsOpen();
   }
 
   void OnPostSetup() override
@@ -93,8 +95,7 @@ public:
 
   void OnShutdown() override
   {
-    rex::ui::UnregisterBind("bind_fov_settings");
-    fov_settings_.reset();
+    fov_settings::Shutdown();
     local_profiles::Shutdown();
 #ifdef REXGLUE_ENABLE_PERF_COUNTERS
     rex::perf::FlushCsv();
@@ -122,9 +123,6 @@ public:
     // was derived before this point, so the shader cache stays shared.
     paths.user_data_root = local_profiles::Load(paths.user_data_root);
   }
-
-private:
-  std::unique_ptr<FovSettings> fov_settings_;
 
   // Override virtual hooks for customization:
   // void OnPostInitLogging() override {}
