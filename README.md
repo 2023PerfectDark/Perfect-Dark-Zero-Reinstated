@@ -1,10 +1,10 @@
 # Perfect Dark Zero Reinstated
 
-## [Download the latest installer — 1.8 / v135](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/tag/PDZInstaller)
+## [Download the latest installer — 2.0 / v139](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/tag/PDZInstaller)
 
-**[Download installer ZIP](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/download/PDZInstaller/Perfect.Dark.Zero.Reinstated.v135.zip)** · [Release notes and verification](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/tag/PDZInstaller) · [Current TU3 source backup](reinstated-tu3)
+**[Download installer ZIP](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/download/PDZInstaller/Perfect.Dark.Zero.Reinstated.v139.zip)** · [Release notes and verification](https://github.com/2023PerfectDark/Perfect-Dark-Zero-Reinstated/releases/tag/PDZInstaller) · [Current TU3 source backup](reinstated-tu3)
 
-v135 adds smoother PD menus and live display settings, updated keyboard/mouse defaults, binding-save feedback, and the unlocked Backpack reload cheat. The in-game changelog is updated in both downloads.
+v139 fixes the black window at startup on recomp 2.0. Existing installations can get the update through **Check for Updates** in the game. If your copy cannot reach the menu, use the installer above.
 
 Supports the original US ISO and **US Rev 1 ISO** as the main game source. Verified Rev 1 discs automatically include their disc DLC, skip the separate DLC page, and cannot use external Title Update 3. Detection checks disc contents rather than box branding. Includes Surface, optional completed-playthrough shaders, corrected player-list highlighting, and clickable OK/Cancel dialogs that restore mouse navigation afterward. See VALIDATION.txt for coverage and known limitations, including unresolved random bot head/body buttons.
 
